@@ -58,6 +58,18 @@ const initialForm = {
 
 
 const Collections = () => {
+	const [sortKey, setSortKey] = useState('');
+	const [sortOrder, setSortOrder] = useState('asc');
+
+	// Sort handler
+	const handleSort = (key) => {
+		if (sortKey === key) {
+			setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+		} else {
+			setSortKey(key);
+			setSortOrder('asc');
+		}
+	};
 	// State for filter text, date range, and collected by
 	const [filterText, setFilterText] = useState("");
 	const [debouncedFilterText, setDebouncedFilterText] = useState("");
@@ -157,8 +169,26 @@ const Collections = () => {
 		return null;
 	}
 
-	// Use backend filtered data directly
-	const filteredData = data;
+	// Sort data if sortKey is set
+	const filteredData = React.useMemo(() => {
+		if (!sortKey) return data;
+		const sorted = [...data].sort((a, b) => {
+			let aVal = a[sortKey];
+			let bVal = b[sortKey];
+			// Try numeric sort if possible
+			if (!isNaN(parseFloat(aVal)) && !isNaN(parseFloat(bVal))) {
+				aVal = parseFloat(aVal);
+				bVal = parseFloat(bVal);
+			} else if (typeof aVal === 'string' && typeof bVal === 'string') {
+				aVal = aVal.toLowerCase();
+				bVal = bVal.toLowerCase();
+			}
+			if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+			if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+			return 0;
+		});
+		return sorted;
+	}, [data, sortKey, sortOrder]);
 
 	// Dynamically update total sum as per filtered data
 	const totalCollectionAmount = filteredData.reduce((sum, row) => {
@@ -573,13 +603,22 @@ const Collections = () => {
 
 				<div style={{ maxHeight: 'none', overflowY: 'visible', width: '100%' }}>
 					<table className="fixed-header-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-						<thead>
-							<tr style={{ position: 'sticky', top: 0, background: '#fafbfc', zIndex: 10 }}>
-								{columns.map(col => (
-									<th key={col.key} style={{ borderBottom: '1px solid #ccc', padding: '4px 6px', textAlign: 'left', ...(col.style || {}) }}>{col.label}</th>
-								))}
-							</tr>
-						</thead>
+								<thead>
+									<tr style={{ position: 'sticky', top: 0, background: '#fafbfc', zIndex: 10 }}>
+										{columns.map(col => (
+											<th
+												key={col.key}
+												style={{ borderBottom: '1px solid #ccc', padding: '4px 6px', textAlign: 'left', cursor: 'pointer', userSelect: 'none', ...(col.style || {}) }}
+												onClick={() => handleSort(col.key)}
+											>
+												{col.label}
+												{sortKey === col.key && (
+													<span style={{ marginLeft: 4 }}>{sortOrder === 'asc' ? '▲' : '▼'}</span>
+												)}
+											</th>
+										))}
+									</tr>
+								</thead>
 							<tbody>
 									{filteredData.map((row, idx) => (
 											<tr

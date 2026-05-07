@@ -81,6 +81,23 @@ function isOpenLoan(loan) {
 }
 
 const Loans = () => {
+	const [loanView, setLoanView] = useState('all'); // 'all', 'open', 'closed'
+
+	const toggleLoanView = () => {
+		setLoanView(prev => prev === 'all' ? 'open' : prev === 'open' ? 'closed' : 'all');
+	};
+	const [sortKey, setSortKey] = useState('');
+	const [sortOrder, setSortOrder] = useState('asc');
+
+	// Sort handler
+	const handleSort = (key) => {
+		if (sortKey === key) {
+			setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+		} else {
+			setSortKey(key);
+			setSortOrder('asc');
+		}
+	};
 	const [loans, setLoans] = useState([]);
 	const [collections, setCollections] = useState([]);
 	const [filter, setFilter] = useState('');
@@ -232,16 +249,50 @@ const Loans = () => {
 		return collectedByLoanId[String(loan_id || '').trim()] || 0;
 	}
 
-	const filteredLoans = loans.filter(loan =>
-		Object.values(loan).some(val =>
-			String(val).toLowerCase().includes(filter.toLowerCase())
-		)
-	);
+	const filteredLoans = useMemo(() => {
+		let filtered = loans.filter(loan =>
+			Object.values(loan).some(val =>
+				String(val).toLowerCase().includes(filter.toLowerCase())
+			)
+		);
+		if (loanView === 'open') {
+			filtered = filtered.filter(isOpenLoan);
+		} else if (loanView === 'closed') {
+			filtered = filtered.filter(loan => !isOpenLoan(loan));
+		}
+		if (!sortKey) return filtered;
+		const sorted = [...filtered].sort((a, b) => {
+			let aVal = a[sortKey];
+			let bVal = b[sortKey];
+			// Special handling for collected_amount and balance
+			if (sortKey === 'collected_amount') {
+				aVal = getCollectedAmount(a.loan_id);
+				bVal = getCollectedAmount(b.loan_id);
+			} else if (sortKey === 'balance') {
+				aVal = (parseFloat(a.issue_amount) || 0) - getCollectedAmount(a.loan_id);
+				bVal = (parseFloat(b.issue_amount) || 0) - getCollectedAmount(b.loan_id);
+			}
+			// Try numeric sort if possible
+			if (!isNaN(parseFloat(aVal)) && !isNaN(parseFloat(bVal))) {
+				aVal = parseFloat(aVal);
+				bVal = parseFloat(bVal);
+			} else if (typeof aVal === 'string' && typeof bVal === 'string') {
+				aVal = aVal.toLowerCase();
+				bVal = bVal.toLowerCase();
+			}
+			if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+			if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+			return 0;
+		});
+		return sorted;
+	}, [loans, filter, sortKey, sortOrder, loanView]);
 
 	// Calculate totals for footer
 	const totalIssued = filteredLoans.reduce((sum, loan) => sum + (parseFloat(loan.issue_amount) || 0), 0);
 	const totalCollected = filteredLoans.reduce((sum, loan) => sum + getCollectedAmount(loan.loan_id), 0);
 	const totalBalance = totalIssued - totalCollected;
+	const totalAdjustments = filteredLoans.reduce((sum, loan) => sum + (parseFloat(loan.adjustments) || 0), 0);
+	const totalInterestReceived = filteredLoans.reduce((sum, loan) => sum + (parseFloat(loan.interest_received) || 0), 0);
 	const customerOptions = customers.map(customer => ({
 		value: customer.customer_id,
 		label: `${customer.customer_id} - ${customer.customer_name}`,
@@ -282,6 +333,25 @@ const Loans = () => {
 					}}
 				>
 					Close Loan
+				</button>
+				<button
+					type="button"
+					onClick={toggleLoanView}
+					style={{
+						padding: '6px 18px',
+						fontSize: '13px',
+						background: loanView === 'all' ? '#1976d2' : loanView === 'open' ? '#388e3c' : '#d32f2f',
+						color: '#fff',
+						border: 'none',
+						borderRadius: 4,
+						marginLeft: 8,
+						minWidth: 120,
+						fontWeight: 600,
+						boxShadow: loanView === 'all' ? '0 2px 8px #1976d233' : loanView === 'open' ? '0 2px 8px #388e3c33' : '0 2px 8px #d32f2f33',
+						transition: 'background 0.2s',
+					}}
+				>
+					{loanView === 'all' ? 'All Loans' : loanView === 'open' ? 'Open Loans' : 'Closed Loans'}
 				</button>
 			</div>
 			{showCloseLoanModal && (
@@ -421,7 +491,16 @@ const Loans = () => {
 					<thead>
 						<tr style={{ position: 'sticky', top: 0, background: '#fafbfc', zIndex: 10 }}>
 							{columns.map(col => (
-								<th key={col.key} style={{ borderBottom: '1px solid #ccc', padding: '4px 6px', textAlign: 'left' }}>{col.label}</th>
+								<th
+									key={col.key}
+									style={{ borderBottom: '1px solid #ccc', padding: '4px 6px', textAlign: 'left', cursor: 'pointer', userSelect: 'none' }}
+									onClick={() => handleSort(col.key)}
+								>
+									{col.label}
+									{sortKey === col.key && (
+										<span style={{ marginLeft: 4 }}>{sortOrder === 'asc' ? '▲' : '▼'}</span>
+									)}
+								</th>
 							))}
 						</tr>
 					</thead>
@@ -482,6 +561,18 @@ const Loans = () => {
 									return (
 										<td key={col.key} style={{ padding: '4px 6px', border: 'none', background: '#f9f9f9', textAlign: 'right' }}>
 											Balance: {totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+										</td>
+									);
+								} else if (col.key === 'adjustments') {
+									return (
+										<td key={col.key} style={{ padding: '4px 6px', border: 'none', background: '#f9f9f9', textAlign: 'right' }}>
+											Adjustments: {totalAdjustments.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+										</td>
+									);
+								} else if (col.key === 'interest_received') {
+									return (
+										<td key={col.key} style={{ padding: '4px 6px', border: 'none', background: '#f9f9f9', textAlign: 'right' }}>
+											Interest: {totalInterestReceived.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 										</td>
 									);
 								} else if (idx === 0) {
