@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 
 import { Pie } from 'react-chartjs-2';
 import './chartjs-setup';
+import API_BASE_URL from '../../api';
 
 const pieOptions = {
   plugins: {
@@ -43,8 +44,8 @@ const LoanPieChart = () => {
   const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/loans-by-type')
-      .then(res => res.json())
+    fetch(`${API_BASE_URL}/api/loans-by-type`)
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then(data => {
         const colorMap = {
           'Personal Loan': '#d32f2f',
@@ -66,7 +67,8 @@ const LoanPieChart = () => {
             },
           ],
         });
-      });
+      })
+      .catch(() => setChartData(null));
   }, []);
 
   if (!chartData) return null;

@@ -1,6 +1,7 @@
 // (Removed duplicate imports)
 import React, { useEffect, useState } from 'react';
 import Select from 'react-select';
+import API_BASE_URL from '../../api';
 
 const columns = [
 	{ label: 'Collection ID', key: 'collection_id', style: { minWidth: 110, maxWidth: 130, width: 120 } },
@@ -35,11 +36,7 @@ const formBoxStyle = {
 	boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
 };
 
-// Set backend URL based on environment
-const backendUrl =
-	process.env.NODE_ENV === "development"
-		? "http://localhost:4000"
-		: "https://sahiproducts.com";
+const backendUrl = API_BASE_URL;
 
 // Helper to get yesterday's date in YYYY-MM-DD format
 function getYesterday() {
@@ -63,6 +60,15 @@ const initialForm = {
 const Collections = () => {
 	// State for filter text, date range, and collected by
 	const [filterText, setFilterText] = useState("");
+	const [debouncedFilterText, setDebouncedFilterText] = useState("");
+
+	// Debounce filterText
+	React.useEffect(() => {
+		const handler = setTimeout(() => {
+			setDebouncedFilterText(filterText);
+		}, 1200); // 1200ms debounce for more relaxed typing
+		return () => clearTimeout(handler);
+	}, [filterText]);
 	const [fromDate, setFromDate] = useState("");
 	const [toDate, setToDate] = useState("");
 	const [filterCollectedBy, setFilterCollectedBy] = useState("");
@@ -252,8 +258,8 @@ const Collections = () => {
 			// Optionally, fetch loans for this customer
 			if (selectedRow.customer_id) {
 				setLoansLoading(true);
-				fetch(`http://localhost:4000/api/loans-by-customer/${selectedRow.customer_id}`)
-					.then(res => res.json())
+				fetch(`${backendUrl}/api/loans-by-customer/${selectedRow.customer_id}`)
+					.then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
 					.then(json => setLoans(Array.isArray(json) ? json : []))
 					.catch(() => setLoans([]))
 					.finally(() => setLoansLoading(false));
@@ -265,31 +271,44 @@ const Collections = () => {
 	useEffect(() => {
 		if (showModal) {
 			fetch(`${backendUrl}/api/customers`)
-				.then(res => res.json())
-				.then(json => setCustomers(Array.isArray(json) ? json : []));
+				.then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+				.then(json => setCustomers(Array.isArray(json) ? json : []))
+				.catch(() => setCustomers([]));
 			fetch(`${backendUrl}/api/collection-types`)
-				.then(res => res.json())
-				.then(json => setCollectionTypes(Array.isArray(json) ? json : []));
+				.then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+				.then(json => setCollectionTypes(Array.isArray(json) ? json : []))
+				.catch(() => setCollectionTypes([]));
 		}
 	}, [showModal]);
 
 	// Always fetch employees for filter combo box on mount
 	useEffect(() => {
 		fetch(`${backendUrl}/api/employees`)
-			.then(res => res.json())
-			.then(json => setEmployees(Array.isArray(json) ? json : []));
+			.then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+			.then(json => setEmployees(Array.isArray(json) ? json : []))
+			.catch(() => setEmployees([]));
 	}, []);
 
 
-	// Refetch collections when filter changes
+	// Refetch collections when date or collectedBy changes
 	useEffect(() => {
 		fetchCollections({
 			fromDate,
 			toDate,
-			text: filterText.trim(),
+			text: debouncedFilterText.trim(),
 			collectedBy: filterCollectedBy
 		});
-	}, [fromDate, toDate, filterText, filterCollectedBy]);
+	}, [fromDate, toDate, filterCollectedBy]);
+
+	// Only refetch when debouncedFilterText changes
+	useEffect(() => {
+		fetchCollections({
+			fromDate,
+			toDate,
+			text: debouncedFilterText.trim(),
+			collectedBy: filterCollectedBy
+		});
+	}, [debouncedFilterText]);
 
 
 	// Handle form input
@@ -571,13 +590,20 @@ const Collections = () => {
 															cursor: 'pointer',
 													}}
 											>
-													{columns.map(col => (
+													{columns.map(col => {
+														let value = row[col.key];
+														// Format all date fields as ddmmmyyyy and remove time
+														if (col.key.toLowerCase().includes('date') && value) {
+															// Remove time if present
+															value = value.split('T')[0];
+															value = formatDate(value);
+														}
+														return (
 															<td key={col.key} style={{ padding: '4px 6px', borderBottom: '1px solid #eee', ...(col.style || {}) }}>
-																	{col.key === 'collection_date' && row[col.key]
-																			? formatDate(row[col.key])
-																			: row[col.key]}
+																{value}
 															</td>
-													))}
+														);
+													})}
 											</tr>
 									))}
 							</tbody>

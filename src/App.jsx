@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import MenuPanel from './components/MenuPanel';
 import Dashboard from './components/Dashboard/Dashboard';
 import Collections from './components/Collections/Collections';
-// import Loans from './components/Loans/Loans';
+import Loans from './components/Loans/Loans';
 import Customers from './components/Customers/Customers';
 import Employees from './components/Employees/Employees';
 import './components/HomePage.css';
@@ -15,7 +15,7 @@ const App = () => {
       <div style={{ flex: 1, background: '#fafbfc', marginLeft: 220 }}>
         {selected === 'Dashboard' && <Dashboard />}
         {selected === 'Collections' && <Collections />}
-        {/* Loans feature removed */}
+        {selected === 'Loans' && <Loans />}
         {selected === 'Customers' && <Customers />}
         {selected === 'Employees' && <Employees />}
       </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import API_BASE_URL from '../../api';
 
 const modalStyle = {
   position: 'fixed',
@@ -25,10 +26,7 @@ const formStyle = {
 };
 
 
-const backendUrl =
-  process.env.NODE_ENV === "development"
-    ? "http://localhost:5000"
-    : "https://sahiproducts.com";
+const backendUrl = API_BASE_URL;
 
 function EditLoanStatusForm({ loan, onClose }) {
   const [status, setStatus] = useState(loan.status || 'Open');

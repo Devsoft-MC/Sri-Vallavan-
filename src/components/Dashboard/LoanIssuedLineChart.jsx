@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import '../Dashboard/chartjs-setup';
+import API_BASE_URL from '../../api';
 
 const lineOptions = {
   responsive: true,
@@ -19,9 +20,13 @@ const LoanIssuedLineChart = () => {
   const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/loans-issued-last-6-months')
-      .then(res => res.json())
+    fetch(`${API_BASE_URL}/api/loans-issued-last-6-months`)
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then(data => {
+        if (!data || !Array.isArray(data.months) || !Array.isArray(data.amounts)) {
+          setChartData(null);
+          return;
+        }
         setChartData({
           labels: data.months,
           datasets: [
@@ -35,7 +40,8 @@ const LoanIssuedLineChart = () => {
             },
           ],
         });
-      });
+      })
+      .catch(() => setChartData(null));
   }, []);
 
   if (!chartData) return null;

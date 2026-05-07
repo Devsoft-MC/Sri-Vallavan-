@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Pie } from 'react-chartjs-2';
+import API_BASE_URL from '../api';
 
 const Dashboard = () => {
   const [chartData, setChartData] = useState(null);
 
-  const backendUrl =
-    process.env.NODE_ENV === "development"
-      ? "http://localhost:4000"
-      : "https://sahiproducts.com";
+  const backendUrl = API_BASE_URL;
 
   useEffect(() => {
     fetch(`${backendUrl}/api/loans-by-type`)
-      .then(res => res.json())
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then(data => {
+        if (!data || !Array.isArray(data.types) || !Array.isArray(data.counts)) {
+          setChartData(null);
+          return;
+        }
         setChartData({
           labels: data.types,
           datasets: [
@@ -24,7 +26,8 @@ const Dashboard = () => {
             },
           ],
         });
-      });
+      })
+      .catch(() => setChartData(null));
   }, []);
 
   if (!chartData) return <div>Loading...</div>;

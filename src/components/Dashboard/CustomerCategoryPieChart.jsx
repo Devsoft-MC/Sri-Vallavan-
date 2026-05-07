@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Pie } from 'react-chartjs-2';
 import '../Dashboard/chartjs-setup';
+import API_BASE_URL from '../../api';
 
 const pieOptions = {
   plugins: {
@@ -41,8 +42,8 @@ const CustomerCategoryPieChart = () => {
   const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/customers-by-category')
-      .then(res => res.json())
+    fetch(`${API_BASE_URL}/api/customers-by-category`)
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then(data => {
         const colorMap = {
           'Regular': '#1976d2',
@@ -66,7 +67,8 @@ const CustomerCategoryPieChart = () => {
             },
           ],
         });
-      });
+      })
+      .catch(() => setChartData(null));
   }, []);
 
   if (!chartData) return null;

@@ -4,7 +4,7 @@ import './HomePage.css';
 const MenuPanel = ({ selected, setSelected }) => (
   <div className="menu-panel">
     <ul className="menu-list">
-      {['Dashboard', 'Collections', 'Customers', 'Employees'].map(item => (
+      {['Dashboard', 'Collections', 'Loans', 'Customers', 'Employees'].map(item => (
         <li
           key={item}
           onClick={() => setSelected(item)}
