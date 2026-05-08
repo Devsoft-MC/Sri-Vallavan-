@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import Select from 'react-select';
+import API_BASE_URL from '../../api';
 
 const initialState = {
   customer_name: '',
@@ -10,21 +12,31 @@ const initialState = {
   city: '',
 };
 
+const DEFAULT_CUSTOMER_CATEGORIES = ['Good', 'Doubtfull', 'Bad'];
+
+const normalizeCustomerCategories = data => {
+  if (!Array.isArray(data)) return DEFAULT_CUSTOMER_CATEGORIES;
+
+  const categories = data
+    .map(item => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object') return item.customer_category;
+      return '';
+    })
+    .filter(Boolean);
+
+  return Array.from(new Set([...DEFAULT_CUSTOMER_CATEGORIES, ...categories]));
+};
 
 export default function AddCustomerForm({ onSuccess, onCancel }) {
   const [form, setForm] = useState(initialState);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [areas, setAreas] = useState([]);
-  const [categoryOptions, setCategoryOptions] = useState([
-    'Good',
-    'Doubtfull',
-    'Bad',
-  ]);
-  const [categorySearch, setCategorySearch] = useState('');
+  const [categoryOptions, setCategoryOptions] = useState(DEFAULT_CUSTOMER_CATEGORIES);
 
   useEffect(() => {
-    fetch('/api/areas')
+    fetch(`${API_BASE_URL}/api/areas`)
       .then(async res => {
         if (!res.ok) return [];
         try {
@@ -36,33 +48,52 @@ export default function AddCustomerForm({ onSuccess, onCancel }) {
       .then(data => setAreas(Array.isArray(data) ? data : []));
   }, []);
 
+  // Prepare options for react-select
+  const areaOptions = areas.map(area => ({
+    value: area.area_name,
+    label: area.area_name
+  }));
+
+  // Fetch customer categories from backend
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/customer-categories`)
+      .then(async res => {
+        if (!res.ok) return [];
+        try {
+          return await res.json();
+        } catch {
+          return [];
+        }
+      })
+      .then(data => setCategoryOptions(normalizeCustomerCategories(data)))
+      .catch(() => setCategoryOptions(DEFAULT_CUSTOMER_CATEGORIES));
+  }, []);
+
+  const customerCategoryOptions = categoryOptions.map(cat => ({
+    value: cat,
+    label: cat
+  }));
+
   const handleChange = e => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
   };
 
-  const handleCategorySearch = e => {
-    setCategorySearch(e.target.value);
-  };
-
-  const handleCategorySelect = val => {
-    setForm(f => ({ ...f, customer_category: val }));
-    setCategorySearch('');
-  };
-
-  const filteredCategories = categoryOptions.filter(opt =>
-    opt.toLowerCase().includes(categorySearch.toLowerCase())
-  );
-
   const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    // Ensure only string values are sent for area and customer_category
+    const payload = {
+      ...form,
+      area: typeof form.area === 'string' ? form.area : (form.area && form.area.value) ? form.area.value : '',
+      customer_category: typeof form.customer_category === 'string' ? form.customer_category : (form.customer_category && form.customer_category.value) ? form.customer_category.value : '',
+    };
     try {
-      const res = await fetch('/api/customers', {
+      const res = await fetch(`${API_BASE_URL}/api/customers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       let data;
       try {
@@ -95,14 +126,15 @@ export default function AddCustomerForm({ onSuccess, onCancel }) {
         </div>
         <div className="form-row">
           <label>Area
-            <select name="area" value={form.area} onChange={handleChange} required>
-              <option value="">Select</option>
-              {areas.map(area => (
-                area.area_name ? (
-                  <option key={area.area_name} value={area.area_name}>{area.area_name}</option>
-                ) : null
-              ))}
-            </select>
+            <Select
+              name="area"
+              value={areaOptions.find(opt => opt.value === form.area) || null}
+              onChange={option => setForm(f => ({ ...f, area: option ? option.value : '' }))}
+              options={areaOptions}
+              placeholder="Select or search area..."
+              isClearable
+              required
+            />
           </label>
         </div>
         <div className="form-row">
@@ -110,33 +142,15 @@ export default function AddCustomerForm({ onSuccess, onCancel }) {
         </div>
         <div className="form-row">
           <label>Customer Category
-            <div style={{ position: 'relative' }}>
-              <input
-                name="customer_category"
-                value={categorySearch || form.customer_category}
-                onChange={e => {
-                  handleCategorySearch(e);
-                  handleChange(e);
-                }}
-                placeholder="Search or select..."
-                autoComplete="off"
-                required
-                style={{ width: '100%' }}
-                onFocus={() => setCategorySearch('')}
-              />
-              {categorySearch && (
-                <div className="combo-dropdown">
-                  {filteredCategories.length === 0 && <div className="combo-item">No match</div>}
-                  {filteredCategories.map(opt => (
-                    <div
-                      key={opt}
-                      className="combo-item"
-                      onClick={() => handleCategorySelect(opt)}
-                    >{opt}</div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <Select
+              name="customer_category"
+              value={customerCategoryOptions.find(opt => opt.value === form.customer_category) || null}
+              onChange={option => setForm(f => ({ ...f, customer_category: option ? option.value : '' }))}
+              options={customerCategoryOptions}
+              placeholder="Select or search category..."
+              isClearable
+              required
+            />
           </label>
         </div>
         <div className="form-row">
