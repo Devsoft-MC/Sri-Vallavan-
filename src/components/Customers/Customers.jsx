@@ -9,6 +9,7 @@ function formatDate(dateStr) {
 }
 import React, { useEffect, useState } from 'react';
 import AddCustomerForm from './AddCustomerForm';
+import NewCustomerForm from './NewCustomerForm';
 import API_BASE_URL from '../../api';
 
 const columns = [
@@ -86,14 +87,13 @@ const Customers = () => {
 					onChange={e => setFilter(e.target.value)}
 					style={{ padding: 6, width: 240, marginRight: 8, fontSize: '13px' }}
 				/>
-				<button onClick={() => window.location.reload()} style={{ padding: '6px 18px', fontSize: '13px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, marginRight: 8 }}>Refresh</button>
-				<button onClick={() => setShowAdd(true)} style={{ padding: '6px 18px', fontSize: '13px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4 }}>Add New Customer</button>
-					{showAdd && (
-						<AddCustomerForm
-							onSuccess={() => { setShowAdd(false); window.location.reload(); }}
-							onCancel={() => setShowAdd(false)}
-						/>
-					)}
+				   <button onClick={() => setShowAdd(true)} style={{ padding: '6px 18px', fontSize: '13px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4 }}>New Customer</button>
+				   {showAdd && (
+					   <NewCustomerForm
+						   onSuccess={() => { setShowAdd(false); window.location.reload(); }}
+						   onCancel={() => setShowAdd(false)}
+					   />
+				   )}
 			</div>
 			<div style={{ maxHeight: 'none', overflowY: 'visible', width: '100%' }}>
 				<table className="fixed-header-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff', boxShadow: '0 1px 4px #eee' }}>

@@ -7,6 +7,7 @@ const initialState = {
   date_of_birth: '',
   mobile_number: '',
   area: '',
+  area_id: '',
   occupation: '',
   customer_category: '',
   city: '',
@@ -26,6 +27,16 @@ const normalizeCustomerCategories = data => {
     .filter(Boolean);
 
   return Array.from(new Set([...DEFAULT_CUSTOMER_CATEGORIES, ...categories]));
+};
+
+const getAreaId = area => {
+  if (!area || area.area_id === undefined || area.area_id === null) return '';
+  return area.area_id;
+};
+
+const getAreaName = area => {
+  if (!area) return '';
+  return area.area_name || area.name || area.area || '';
 };
 
 export default function AddCustomerForm({ onSuccess, onCancel }) {
@@ -50,9 +61,9 @@ export default function AddCustomerForm({ onSuccess, onCancel }) {
 
   // Prepare options for react-select
   const areaOptions = areas.map(area => ({
-    value: area.area_name,
-    label: area.area_name
-  }));
+    value: getAreaId(area),
+    label: getAreaName(area)
+  })).filter(option => option.value !== '' && option.label);
 
   // Fetch customer categories from backend
   useEffect(() => {
@@ -83,10 +94,16 @@ export default function AddCustomerForm({ onSuccess, onCancel }) {
     e.preventDefault();
     setLoading(true);
     setError('');
-    // Ensure only string values are sent for area and customer_category
+    if (!form.area || !form.area_id) {
+      setLoading(false);
+      setError('Please select an area.');
+      return;
+    }
+
     const payload = {
       ...form,
-      area: typeof form.area === 'string' ? form.area : (form.area && form.area.value) ? form.area.value : '',
+      area: String(form.area || ''),
+      area_id: form.area_id,
       customer_category: typeof form.customer_category === 'string' ? form.customer_category : (form.customer_category && form.customer_category.value) ? form.customer_category.value : '',
     };
     try {
@@ -128,8 +145,12 @@ export default function AddCustomerForm({ onSuccess, onCancel }) {
           <label>Area
             <Select
               name="area"
-              value={areaOptions.find(opt => opt.value === form.area) || null}
-              onChange={option => setForm(f => ({ ...f, area: option ? option.value : '' }))}
+              value={areaOptions.find(opt => opt.value === form.area_id) || null}
+              onChange={option => setForm(f => ({
+                ...f,
+                area: option ? option.label : '',
+                area_id: option ? option.value : '',
+              }))}
               options={areaOptions}
               placeholder="Select or search area..."
               isClearable
