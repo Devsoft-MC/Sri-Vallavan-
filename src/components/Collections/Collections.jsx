@@ -45,6 +45,11 @@ function getYesterday() {
 	return d.toISOString().slice(0, 10);
 }
 
+function getEmployeeName(employee) {
+	if (typeof employee === 'string') return employee;
+	return employee?.employee_name || employee?.name || '';
+}
+
 const initialForm = {
 	customer_id: '',
 	loan_id: '',
@@ -315,7 +320,7 @@ const Collections = () => {
 	useEffect(() => {
 		fetch(`${backendUrl}/api/employees`)
 			.then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-			.then(json => setEmployees(Array.isArray(json) ? json : []))
+			.then(json => setEmployees(Array.isArray(json) ? json.map(getEmployeeName).filter(Boolean) : []))
 			.catch(() => setEmployees([]));
 	}, []);
 

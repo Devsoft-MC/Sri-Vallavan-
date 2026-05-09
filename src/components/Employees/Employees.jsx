@@ -1,3 +1,25 @@
+import React, { useEffect, useState } from 'react';
+import API_BASE_URL from '../../api';
+
+const columns = [
+	{ label: 'Employee ID', key: 'employee_id' },
+	{ label: 'Name', key: 'employee_name' },
+	{ label: 'Email', key: 'email' },
+	{ label: 'Mobile Phone', key: 'mobile_phone' },
+	{ label: 'Designation', key: 'designation' },
+	{ label: 'Role', key: 'role' },
+	{ label: 'Status', key: 'employment_status' },
+	{ label: 'Login Email', key: 'login_email' },
+	{ label: 'Login Active', key: 'login_active' },
+	{ label: 'Last Login', key: 'last_login_at' },
+	{ label: 'Can Collect', key: 'can_collect' },
+	{ label: 'Can Create Loans', key: 'can_create_loans' },
+	{ label: 'Can Manage Customers', key: 'can_manage_customers' },
+	{ label: 'Password Reset Required', key: 'password_reset_required' },
+	{ label: 'Created At', key: 'created_at' },
+	{ label: 'Updated At', key: 'updated_at' },
+];
+
 function formatDate(dateStr) {
 	if (!dateStr) return '';
 	const date = new Date(dateStr.split('T')[0]);
@@ -7,19 +29,20 @@ function formatDate(dateStr) {
 	const year = date.getFullYear();
 	return `${day}${month}${year}`;
 }
-import React, { useEffect, useState } from 'react';
-import API_BASE_URL from '../../api';
 
-const columns = [
-	{ label: 'Employee ID', key: 'employee_id' },
-	{ label: 'Name', key: 'name' },
-	{ label: 'Email', key: 'email' },
-	{ label: 'Designation', key: 'designation' },
-	{ label: 'Role', key: 'role' },
-	{ label: 'Status', key: 'status' },
-	{ label: 'Login Active', key: 'login_active' },
-	{ label: 'Last Login', key: 'last_login' },
-];
+function normalizeEmployee(row, index) {
+	if (typeof row === 'string') {
+		return {
+			employee_id: '',
+			employee_name: row,
+		};
+	}
+
+	return {
+		...row,
+		employee_name: row.employee_name || row.name || '',
+	};
+}
 
 const Employees = () => {
 	const [employees, setEmployees] = useState([]);
@@ -27,10 +50,10 @@ const Employees = () => {
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		fetch(`${API_BASE_URL}/api/employees`)
+		fetch(`${API_BASE_URL}/api/employees?details=1`)
 			.then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
 			.then(data => {
-				setEmployees(Array.isArray(data) ? data : []);
+				setEmployees(Array.isArray(data) ? data.map(normalizeEmployee) : []);
 				setLoading(false);
 			})
 			.catch(() => {
@@ -77,7 +100,10 @@ const Employees = () => {
 								<tr key={idx}>
 									{columns.map(col => {
 										let value = emp[col.key];
-										if (col.key.toLowerCase().includes('date') && value) {
+										if (typeof value === 'boolean') {
+											value = value ? 'Yes' : 'No';
+										}
+										if ((col.key.toLowerCase().includes('date') || col.key.endsWith('_at')) && value) {
 											value = value.split('T')[0];
 											value = formatDate(value);
 										}
