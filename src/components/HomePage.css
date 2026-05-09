@@ -161,3 +161,150 @@ body {
   background: #fafbfc;
   z-index: 2;
 }
+
+.logout-button {
+  margin: auto 24px 24px 32px;
+  width: calc(100% - 56px);
+  border: 1px solid #d7dde6;
+  background: #fff;
+  color: #344054;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.logout-button:hover,
+.logout-button:focus {
+  border-color: #1976d2;
+  color: #1976d2;
+  background: #f4f8ff;
+  outline: none;
+}
+
+.login-page {
+  min-height: 100vh;
+  width: 100vw;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, rgba(25, 118, 210, 0.12), rgba(230, 126, 34, 0.1)),
+    #f6f8fb;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.login-panel {
+  width: min(100%, 420px);
+  background: #fff;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(16, 24, 40, 0.12);
+  padding: 34px;
+  box-sizing: border-box;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.login-mark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  background: #1976d2;
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.login-eyebrow {
+  margin: 0 0 4px;
+  color: #667085;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.login-brand h1 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.8rem;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.login-form label {
+  color: #344054;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.login-form input {
+  height: 42px;
+  border: 1px solid #cfd8e3;
+  border-radius: 6px;
+  padding: 0 12px;
+  font: inherit;
+  color: #1f2937;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.login-form input:focus {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.14);
+  outline: none;
+}
+
+.login-error {
+  margin: 4px 0 0;
+  color: #b42318;
+  font-size: 0.92rem;
+}
+
+.login-submit {
+  height: 44px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 6px;
+  background: #1976d2;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.login-submit:hover,
+.login-submit:focus {
+  background: #145ea8;
+  outline: none;
+}
+
+.login-submit:disabled {
+  background: #8bb8e4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  .login-page {
+    padding: 16px;
+  }
+
+  .login-panel {
+    padding: 24px;
+  }
+}
