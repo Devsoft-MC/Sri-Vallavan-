@@ -88,6 +88,8 @@ const Collections = () => {
 	}, [filterText]);
 	const [fromDate, setFromDate] = useState("");
 	const [toDate, setToDate] = useState("");
+	const [appliedFromDate, setAppliedFromDate] = useState("");
+	const [appliedToDate, setAppliedToDate] = useState("");
 	const [filterCollectedBy, setFilterCollectedBy] = useState("");
 			// Export handler (must be outside JSX)
 			const handleExport = () => {
@@ -246,6 +248,20 @@ const Collections = () => {
 				});
 		};
 
+		const handleRefreshCollections = () => {
+			fetchCollections({
+				fromDate: appliedFromDate,
+				toDate: appliedToDate,
+				text: debouncedFilterText.trim(),
+				collectedBy: filterCollectedBy
+			});
+		};
+
+		const handleApplyDateFilter = () => {
+			setAppliedFromDate(fromDate);
+			setAppliedToDate(toDate);
+		};
+
 		// Open modal for add or edit
 				// Delete collection logic
 				const handleDeleteCollection = async () => {
@@ -261,7 +277,7 @@ const Collections = () => {
 						if (!res.ok) throw new Error('Failed to delete collection');
 						setSuccessMsg(`Collection ${selectedRow.collection_id} deleted.`);
 						setSelectedRow(null);
-						fetchCollections();
+						handleRefreshCollections();
 						setTimeout(() => setSuccessMsg(''), 5000);
 					} catch (err) {
 						setDeleteWarning('Failed to delete collection.');
@@ -325,25 +341,15 @@ const Collections = () => {
 	}, []);
 
 
-	// Refetch collections when date or collectedBy changes
+	// Refetch collections when applied filters change
 	useEffect(() => {
 		fetchCollections({
-			fromDate,
-			toDate,
+			fromDate: appliedFromDate,
+			toDate: appliedToDate,
 			text: debouncedFilterText.trim(),
 			collectedBy: filterCollectedBy
 		});
-	}, [fromDate, toDate, filterCollectedBy]);
-
-	// Only refetch when debouncedFilterText changes
-	useEffect(() => {
-		fetchCollections({
-			fromDate,
-			toDate,
-			text: debouncedFilterText.trim(),
-			collectedBy: filterCollectedBy
-		});
-	}, [debouncedFilterText]);
+	}, [appliedFromDate, appliedToDate, debouncedFilterText, filterCollectedBy]);
 
 
 	// Handle form input
@@ -427,7 +433,7 @@ const Collections = () => {
 					setForm(initialForm);
 					setSuccessMsg(`Collection saved! RV Number: ${dataResp.collection_id}`);
 				}
-				fetchCollections();
+				handleRefreshCollections();
 				setTimeout(() => setSuccessMsg(''), 5000);
 			} catch (err) {
 				setFormError(err.message || (isEditMode ? 'Failed to update collection.' : 'Failed to add collection.'));
@@ -435,7 +441,6 @@ const Collections = () => {
 		};
 
 
-		if (loading) return null;
 		if (formError) {
 			return (
 				<div style={{ color: 'red', background: '#fee', padding: 16, margin: 24, border: '1px solid #f99', borderRadius: 6 }}>
@@ -459,6 +464,20 @@ const Collections = () => {
 					<button disabled={!selectedRow} onClick={handleDeleteCollection} style={{ background: selectedRow ? '#e53935' : '#eee', color: selectedRow ? '#fff' : '#888', border: 'none', borderRadius: 4, padding: '6px 18px' }}>Delete Collection</button>
 						{deleteWarning && <div style={{ color: 'red', marginBottom: 12, fontWeight: 600 }}>{deleteWarning}</div>}
 					<button onClick={() => setShowExportDialog(true)} style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 18px' }}>Export</button>
+					<button
+						onClick={handleRefreshCollections}
+						disabled={loading}
+						style={{
+							background: loading ? '#eee' : '#2e7d32',
+							color: loading ? '#888' : '#fff',
+							border: 'none',
+							borderRadius: 4,
+							padding: '6px 18px',
+							cursor: loading ? 'default' : 'pointer',
+						}}
+					>
+						{loading ? 'Refreshing...' : 'Refresh'}
+					</button>
 								{/* Export dialog */}
 								{showExportDialog && (
 									<div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.18)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -596,11 +615,17 @@ const Collections = () => {
 					onChange={e => setToDate(e.target.value)}
 				/>
 				<button
+					style={{ marginLeft: 8, padding: '3px 14px', fontSize: '13px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+					onClick={handleApplyDateFilter}
+				>Apply Date</button>
+				<button
 					style={{ marginLeft: 8, padding: '3px 14px', fontSize: '13px', background: '#eee', border: '1px solid #ccc', borderRadius: 4, cursor: 'pointer' }}
 					onClick={() => {
 						setFilterText("");
 						setFromDate("");
 						setToDate("");
+						setAppliedFromDate("");
+						setAppliedToDate("");
 						setFilterCollectedBy("");
 					}}
 				>Clear</button>
