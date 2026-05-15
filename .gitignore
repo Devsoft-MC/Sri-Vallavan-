@@ -7,3 +7,4 @@ node_modules/
 workspace/source_backups/
 workspace/app_copies/
 workspace/editable_backups/
+.vercel

@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://187.127.158.54/api/:path*"
+      "destination": "http://api.sahiproducts.com/api/:path*"
     }
   ]
 }

@@ -1,0 +1,8 @@
+node_modules
+build
+backend/node_modules
+workspace
+source-backups
+.git
+.DS_Store
+*.log
