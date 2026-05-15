@@ -25,10 +25,14 @@ const Login = ({ onLogin }) => {
     setSubmitting(true);
     setError('');
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           username: form.username.trim(),
           password: form.password,
@@ -49,9 +53,14 @@ const Login = ({ onLogin }) => {
 
       saveAuth(data);
       onLogin();
-    } catch {
-      setError('Unable to reach the login server.');
+    } catch (err) {
+      setError(
+        err.name === 'AbortError'
+          ? 'Login server did not respond. Check VPS/network access.'
+          : 'Unable to reach the login server.'
+      );
     } finally {
+      clearTimeout(timeoutId);
       setSubmitting(false);
     }
   };
