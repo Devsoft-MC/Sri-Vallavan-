@@ -5,6 +5,7 @@ import Collections from './components/Collections/Collections';
 import Loans from './components/Loans/Loans';
 import Customers from './components/Customers/Customers';
 import Employees from './components/Employees/Employees';
+import ActiveLoanPositionReport from './components/Reports/ActiveLoanPositionReport';
 import Login from './components/Login';
 import { clearAuth, getStoredAuth, installAuthFetch } from './auth';
 import './components/HomePage.css';
@@ -42,12 +43,19 @@ const App = () => {
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
       <MenuPanel selected={selected} setSelected={setSelected} onLogout={handleLogout} />
-      <div style={{ flex: 1, background: '#fafbfc', marginLeft: 220 }}>
+      <div style={{ flex: 1, background: '#fafbfc', marginLeft: 180 }}>
         {selected === 'Dashboard' && <Dashboard />}
         {selected === 'Collections' && <Collections />}
         {selected === 'Loans' && <Loans />}
         {selected === 'Customers' && <Customers />}
         {selected === 'Employees' && <Employees />}
+        {selected === 'Reports' && (
+          <div style={{ padding: 32 }}>
+            <h2 style={{ color: 'navy', margin: '0 0 12px' }}>Reports</h2>
+            <div style={{ color: '#667085' }}>Select a report from the left panel.</div>
+          </div>
+        )}
+        {selected === 'Loan Report' && <ActiveLoanPositionReport />}
       </div>
     </div>
   );

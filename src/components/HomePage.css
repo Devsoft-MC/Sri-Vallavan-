@@ -12,7 +12,7 @@ body {
 
 
 .menu-panel {
-  width: 220px;
+  width: 180px;
   height: 100vh;
   background: #fff;
   color: #222;
@@ -33,7 +33,7 @@ body {
 
 .menu-list {
   list-style: none;
-  padding: 0 0 0 32px;
+  padding: 0 0 0 24px;
   margin: 48px 0 0 0;
   width: 100%;
 body {
@@ -43,7 +43,8 @@ body {
 
 
 .menu-list li {
-  padding: 14px 0;
+  position: relative;
+  padding: 14px 14px 14px 0;
   font-size: 1.1rem;
   cursor: pointer;
   border-radius: 4px 0 0 4px;
@@ -68,6 +69,57 @@ body {
   color: #1976d2;
   background: none;
 }
+
+.menu-list li.flyout-parent {
+  display: block;
+  padding: 0 14px 0 0;
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 14px 0;
+}
+
+.flyout-arrow {
+  color: #98a2b3;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.flyout-menu {
+  position: absolute;
+  left: 112px;
+  top: 2px;
+  min-width: 190px;
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+  z-index: 100;
+}
+
+.flyout-menu li {
+  display: block;
+  padding: 10px 14px;
+  border-radius: 5px;
+  font-size: 0.96rem;
+  color: #344054;
+  white-space: nowrap;
+}
+
+.flyout-menu li:hover,
+.flyout-menu li.selected {
+  background: #eef6ff;
+  color: #1976d2;
+  font-weight: 700;
+}
+
 .hero-content {
   max-width: 500px;
 }
