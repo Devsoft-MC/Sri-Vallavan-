@@ -41,9 +41,9 @@ const App = () => {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
+    <div className="app-shell">
       <MenuPanel selected={selected} setSelected={setSelected} onLogout={handleLogout} />
-      <div style={{ flex: 1, background: '#fafbfc', marginLeft: 180 }}>
+      <main className="app-main">
         {selected === 'Dashboard' && <Dashboard />}
         {selected === 'Collections' && <Collections />}
         {selected === 'Loans' && <Loans />}
@@ -56,7 +56,7 @@ const App = () => {
           </div>
         )}
         {selected === 'Loan Report' && <ActiveLoanPositionReport />}
-      </div>
+      </main>
     </div>
   );
 };

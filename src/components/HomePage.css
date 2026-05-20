@@ -2,14 +2,67 @@
   color: #1976d2;
   font-weight: bold;
 }
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   font-family: 'Segoe UI', Arial, sans-serif;
   background: #f9f9f9;
   color: #222;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  width: 100vw;
+  background: #fafbfc;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  margin-left: 180px;
+  background: #fafbfc;
+  overflow: auto;
+}
+
+.dashboard-chart-grid {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 40px;
+}
+
+.dashboard-chart-card {
+  width: min(400px, 100%);
+  height: 400px;
+  margin: 40px auto;
+}
+
+.dashboard-line-chart {
+  width: 100%;
+  max-width: 1600px;
+  height: 400px;
+  margin: 40px auto;
+}
 
 .menu-panel {
   width: 180px;
@@ -36,9 +89,6 @@ body {
   padding: 0 0 0 24px;
   margin: 48px 0 0 0;
   width: 100%;
-body {
-  overflow-x: hidden;
-}
 }
 
 
@@ -214,6 +264,99 @@ body {
   z-index: 2;
 }
 
+.fixed-header-table {
+  min-width: 760px;
+}
+
+.fixed-header-table th,
+.fixed-header-table td {
+  white-space: nowrap;
+}
+
+.mobile-card-list {
+  display: none;
+}
+
+.mobile-record-card {
+  background: #fff;
+  border: 1px solid #e4e8ef;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.mobile-record-card.selected {
+  border-color: #1976d2;
+  background: #f5faff;
+}
+
+.mobile-card-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.mobile-card-subtitle {
+  margin-top: 2px;
+  color: #667085;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.mobile-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #eef6ff;
+  color: #1976d2;
+  padding: 4px 9px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.mobile-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.mobile-card-field {
+  min-width: 0;
+}
+
+.mobile-card-field.full {
+  grid-column: 1 / -1;
+}
+
+.mobile-card-label {
+  display: block;
+  color: #667085;
+  font-size: 0.72rem;
+  margin-bottom: 2px;
+}
+
+.mobile-card-value {
+  display: block;
+  color: #1f2937;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.mobile-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.desktop-table-wrap {
+  max-height: none;
+  overflow-y: visible;
+  width: 100%;
+}
+
 .logout-button {
   margin: auto 24px 24px 32px;
   width: calc(100% - 56px);
@@ -358,5 +501,209 @@ body {
 
   .login-panel {
     padding: 24px;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    background: #fafbfc;
+  }
+
+  .app-shell {
+    display: block;
+    min-height: 100dvh;
+  }
+
+  .app-main {
+    min-height: 100dvh;
+    margin-left: 0;
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+    overflow-x: auto;
+  }
+
+  .app-main > div {
+    padding: 16px !important;
+  }
+
+  .dashboard-chart-grid {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .dashboard-chart-card {
+    height: 320px;
+    margin: 18px auto;
+  }
+
+  .dashboard-line-chart {
+    min-width: 640px;
+    height: 320px;
+    margin: 18px 0;
+  }
+
+  .menu-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: auto;
+    min-height: 70px;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    border-right: 0;
+    border-top: 1px solid #dbe2ea;
+    box-shadow: 0 -10px 28px rgba(15, 23, 42, 0.08);
+    z-index: 500;
+  }
+
+  .menu-list {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .menu-list li,
+  .menu-list li.flyout-parent {
+    flex: 0 0 auto;
+    min-width: 86px;
+    min-height: 50px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    text-align: center;
+    display: grid;
+    place-items: center;
+    color: #344054;
+  }
+
+  .menu-list li.selected {
+    background: #eef6ff;
+    color: #1976d2;
+  }
+
+  .menu-row {
+    display: grid;
+    place-items: center;
+    gap: 2px;
+    width: 100%;
+    padding: 0;
+  }
+
+  .flyout-arrow {
+    font-size: 0.95rem;
+    transform: rotate(-90deg);
+  }
+
+  .flyout-menu {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    top: auto;
+    min-width: 0;
+    display: grid;
+    gap: 6px;
+  }
+
+  .flyout-menu li {
+    min-width: 0;
+    min-height: 44px;
+    text-align: left;
+    place-items: center start;
+  }
+
+  .logout-button {
+    position: absolute;
+    right: 10px;
+    top: -46px;
+    width: auto;
+    min-width: 92px;
+    margin: 0;
+    padding: 8px 12px;
+    background: #fff;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.12);
+  }
+
+  h2 {
+    font-size: 1.35rem;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    min-height: 40px;
+  }
+
+  .fixed-header-table {
+    min-width: 900px;
+  }
+
+  .desktop-table-wrap {
+    display: none;
+  }
+
+  .mobile-card-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .mobile-toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch !important;
+    gap: 8px !important;
+    position: static !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .mobile-toolbar input,
+  .mobile-toolbar select,
+  .mobile-toolbar button {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .mobile-toolbar > input,
+  .mobile-toolbar > label,
+  .mobile-toolbar > span,
+  .mobile-toolbar > div {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .mobile-toolbar > input[type="text"],
+  .mobile-toolbar > label,
+  .mobile-toolbar > span,
+  .mobile-toolbar > div {
+    grid-column: 1 / -1;
+  }
+
+  .mobile-toolbar > span {
+    align-self: end;
+    font-size: 0.76rem !important;
+    color: #667085;
+  }
+
+  .mobile-modal-panel {
+    width: calc(100vw - 24px) !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 24px) !important;
+    overflow-y: auto !important;
+    padding: 20px !important;
+  }
+
+  .login-brand h1 {
+    font-size: 1.45rem;
   }
 }

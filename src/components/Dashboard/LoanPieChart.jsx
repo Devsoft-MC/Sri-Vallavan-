@@ -74,7 +74,7 @@ const LoanPieChart = () => {
   if (!chartData) return null;
 
   return (
-    <div style={{ width: 400, height: 400, margin: '40px auto' }}>
+    <div className="dashboard-chart-card">
       <h2>Loan Categories</h2>
       <Pie data={chartData} options={pieOptions} plugins={['datalabels']} />
     </div>

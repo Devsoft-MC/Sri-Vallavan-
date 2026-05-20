@@ -41,6 +41,28 @@ function formatDate(value) {
   return `${day}-${month}-${year}`;
 }
 
+function getSortValue(row, column) {
+  const value = row[column.key];
+
+  if (column.numeric) return toAmount(value);
+  if (column.key.includes('date')) return normalizeDate(value);
+
+  return String(value || '').toLowerCase();
+}
+
+function formatReportCell(row, column, forExcel = false) {
+  const value = row[column.key];
+
+  if (column.numeric) return forExcel ? toAmount(value) : formatAmount(value);
+  if (column.key.includes('date')) return formatDate(value);
+
+  return value || '';
+}
+
+function getReportFileName(extension, asOnDate) {
+  return `active-loan-position-${asOnDate}.${extension}`;
+}
+
 function isLoanActiveAsOn(loan, asOnDate) {
   const issueDate = normalizeDate(loan.issue_date);
   const closingDate = normalizeDate(loan.closing_date || loan.close_date);
@@ -60,6 +82,7 @@ const ActiveLoanPositionReport = () => {
   const [search, setSearch] = useState('');
   const [area, setArea] = useState('');
   const [loanType, setLoanType] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: 'loan_id', direction: 'asc' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -181,11 +204,91 @@ const ActiveLoanPositionReport = () => {
     balance: acc.balance + row.balance_amount,
   }), { activeLoans: 0, issued: 0, collected: 0, balance: 0 }), [filteredRows]);
 
+  const sortedRows = useMemo(() => {
+    const sortColumn = columns.find(column => column.key === sortConfig.key);
+    if (!sortColumn) return filteredRows;
+
+    return [...filteredRows].sort((a, b) => {
+      const aValue = getSortValue(a, sortColumn);
+      const bValue = getSortValue(b, sortColumn);
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredRows, sortConfig]);
+
+  const handleSort = (key) => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
   const clearFilters = () => {
     setAsOnDate(today);
     setSearch('');
     setArea('');
     setLoanType('');
+  };
+
+  const exportToExcel = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      const tableRows = sortedRows.map(row => columns.map(column => formatReportCell(row, column, true)));
+      const worksheet = XLSX.utils.aoa_to_sheet([
+        ['Active Loan Position As On Date'],
+        ['As On Date', formatDate(asOnDate)],
+        ['Active Loans', totals.activeLoans, 'Total Issued Amount', totals.issued, 'Total Collected Amount', totals.collected, 'Balance Amount', totals.balance],
+        [],
+        columns.map(column => column.label),
+        ...tableRows,
+      ]);
+
+      worksheet['!cols'] = columns.map(column => ({ wch: column.numeric ? 18 : 16 }));
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Loan Report');
+      XLSX.writeFile(workbook, getReportFileName('xlsx', asOnDate));
+    } catch (err) {
+      setError(err.message || 'Unable to export Excel report.');
+    }
+  };
+
+  const exportToPDF = async () => {
+    try {
+      const jsPDFModule = await import('jspdf');
+      const autoTableModule = await import('jspdf-autotable');
+      const doc = new jsPDFModule.default({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+      doc.setFontSize(14);
+      doc.text('Active Loan Position As On Date', 40, 36);
+      doc.setFontSize(9);
+      doc.text(`As On Date: ${formatDate(asOnDate)}`, 40, 54);
+      doc.text(
+        `Active Loans: ${totals.activeLoans.toLocaleString()}   Issued: ${formatAmount(totals.issued)}   Collected: ${formatAmount(totals.collected)}   Balance: ${formatAmount(totals.balance)}`,
+        40,
+        70
+      );
+
+      autoTableModule.default(doc, {
+        startY: 86,
+        head: [columns.map(column => column.label)],
+        body: sortedRows.map(row => columns.map(column => formatReportCell(row, column))),
+        styles: { fontSize: 7, cellPadding: 3, overflow: 'linebreak' },
+        headStyles: { fillColor: [250, 251, 252], textColor: [31, 41, 55], fontStyle: 'bold' },
+        columnStyles: {
+          8: { halign: 'right' },
+          9: { halign: 'right' },
+          10: { halign: 'right' },
+        },
+        margin: { left: 24, right: 24 },
+      });
+
+      doc.save(getReportFileName('pdf', asOnDate));
+    } catch (err) {
+      setError(err.message || 'Unable to export PDF report.');
+    }
   };
 
   return (
@@ -233,6 +336,22 @@ const ActiveLoanPositionReport = () => {
         >
           Clear
         </button>
+        <button
+          type="button"
+          onClick={exportToExcel}
+          disabled={loading || sortedRows.length === 0}
+          style={{ padding: '8px 16px', fontSize: 13, border: '1px solid #157347', borderRadius: 4, background: loading || sortedRows.length === 0 ? '#f2f4f7' : '#198754', color: loading || sortedRows.length === 0 ? '#98a2b3' : '#fff', cursor: loading || sortedRows.length === 0 ? 'not-allowed' : 'pointer' }}
+        >
+          Excel
+        </button>
+        <button
+          type="button"
+          onClick={exportToPDF}
+          disabled={loading || sortedRows.length === 0}
+          style={{ padding: '8px 16px', fontSize: 13, border: '1px solid #b42318', borderRadius: 4, background: loading || sortedRows.length === 0 ? '#f2f4f7' : '#d92d20', color: loading || sortedRows.length === 0 ? '#98a2b3' : '#fff', cursor: loading || sortedRows.length === 0 ? 'not-allowed' : 'pointer' }}
+        >
+          PDF
+        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(150px, 1fr))', gap: 12, marginBottom: 18 }}>
@@ -244,13 +363,34 @@ const ActiveLoanPositionReport = () => {
 
       {error && <div style={{ color: '#b00020', marginBottom: 12 }}>{error}</div>}
 
-      <div style={{ overflowX: 'auto', background: '#fff', boxShadow: '0 1px 4px #eee' }}>
+      <div className="desktop-table-wrap" style={{ overflowX: 'auto', background: '#fff', boxShadow: '0 1px 4px #eee' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 1180 }}>
           <thead>
             <tr>
               {columns.map(column => (
                 <th key={column.key} style={{ padding: '8px 6px', borderBottom: '1px solid #ccc', textAlign: column.numeric ? 'right' : 'left', background: '#fafbfc', position: 'sticky', top: 0 }}>
-                  {column.label}
+                  <button
+                    type="button"
+                    onClick={() => handleSort(column.key)}
+                    aria-sort={sortConfig.key === column.key ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    style={{
+                      width: '100%',
+                      border: 0,
+                      background: 'transparent',
+                      padding: 0,
+                      color: '#1f2937',
+                      cursor: 'pointer',
+                      font: 'inherit',
+                      fontWeight: 700,
+                      textAlign: column.numeric ? 'right' : 'left',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <span>{column.label}</span>
+                    <span style={{ display: 'inline-block', width: 14, marginLeft: 4, color: sortConfig.key === column.key ? '#1d4ed8' : '#98a2b3' }}>
+                      {sortConfig.key === column.key ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕'}
+                    </span>
+                  </button>
                 </th>
               ))}
             </tr>
@@ -258,21 +398,14 @@ const ActiveLoanPositionReport = () => {
           <tbody>
             {loading ? (
               <tr><td colSpan={columns.length} style={{ padding: 12 }}>Loading...</td></tr>
-            ) : filteredRows.length === 0 ? (
+            ) : sortedRows.length === 0 ? (
               <tr><td colSpan={columns.length} style={{ padding: 12 }}>No active loans found for the selected date.</td></tr>
-            ) : filteredRows.map(row => (
+            ) : sortedRows.map(row => (
               <tr key={row.loan_id}>
                 {columns.map(column => {
-                  const rawValue = row[column.key];
-                  const value = column.numeric
-                    ? formatAmount(rawValue)
-                    : column.key.includes('date')
-                      ? formatDate(rawValue)
-                      : rawValue;
-
                   return (
                     <td key={column.key} style={{ padding: '6px', borderBottom: '1px solid #eee', textAlign: column.numeric ? 'right' : 'left' }}>
-                      {value}
+                      {formatReportCell(row, column)}
                     </td>
                   );
                 })}
@@ -280,6 +413,53 @@ const ActiveLoanPositionReport = () => {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="mobile-card-list">
+        {loading ? (
+          <div className="mobile-record-card">Loading...</div>
+        ) : sortedRows.length === 0 ? (
+          <div className="mobile-record-card">No active loans found for the selected date.</div>
+        ) : sortedRows.map(row => (
+          <div className="mobile-record-card" key={row.loan_id}>
+            <div className="mobile-card-title">
+              <div>
+                {row.customer_name || 'Loan'}
+                <div className="mobile-card-subtitle">Loan {row.loan_id} · Customer {row.customer_id}</div>
+              </div>
+              <span className="mobile-badge">{row.loan_type || 'Loan'}</span>
+            </div>
+            <div className="mobile-card-grid">
+              <div className="mobile-card-field">
+                <span className="mobile-card-label">Area</span>
+                <span className="mobile-card-value">{row.area}</span>
+              </div>
+              <div className="mobile-card-field">
+                <span className="mobile-card-label">Mobile</span>
+                <span className="mobile-card-value">{row.mobile_number}</span>
+              </div>
+              <div className="mobile-card-field">
+                <span className="mobile-card-label">Issue Date</span>
+                <span className="mobile-card-value">{formatDate(row.issue_date)}</span>
+              </div>
+              <div className="mobile-card-field">
+                <span className="mobile-card-label">Maturity</span>
+                <span className="mobile-card-value">{formatDate(row.maturity_date)}</span>
+              </div>
+              <div className="mobile-card-field">
+                <span className="mobile-card-label">Issued</span>
+                <span className="mobile-card-value">{formatAmount(row.issue_amount)}</span>
+              </div>
+              <div className="mobile-card-field">
+                <span className="mobile-card-label">Collected</span>
+                <span className="mobile-card-value">{formatAmount(row.collected_amount)}</span>
+              </div>
+              <div className="mobile-card-field full">
+                <span className="mobile-card-label">Balance</span>
+                <span className="mobile-card-value">{formatAmount(row.balance_amount)}</span>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

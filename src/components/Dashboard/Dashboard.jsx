@@ -7,7 +7,7 @@ import LoanIssuedLineChart from './LoanIssuedLineChart';
 
 const Dashboard = () => (
   <div>
-    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: 40 }}>
+    <div className="dashboard-chart-grid">
       <LoanPieChart />
       <CustomerCategoryPieChart />
     </div>

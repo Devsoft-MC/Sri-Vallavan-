@@ -458,7 +458,7 @@ const Collections = () => {
 				{successMsg && <div style={{ color: 'green', marginBottom: 12, fontWeight: 600 }}>{successMsg}</div>}
 
 				{/* Header row for buttons and filters */}
-				<div style={{ display: 'flex', gap: 10, marginBottom: 12, fontSize: '13px' }}>
+				<div className="mobile-toolbar" style={{ display: 'flex', gap: 10, marginBottom: 12, fontSize: '13px' }}>
 					<button onClick={openAddModal} style={{ background: 'navy', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 18px' }}>Add Collection</button>
 					<button disabled={!selectedRow} onClick={openEditModal} style={{ background: selectedRow ? '#ffd600' : '#eee', color: selectedRow ? '#222' : '#888', border: 'none', borderRadius: 4, padding: '6px 18px' }}>Edit Collection</button>
 					<button disabled={!selectedRow} onClick={handleDeleteCollection} style={{ background: selectedRow ? '#e53935' : '#eee', color: selectedRow ? '#fff' : '#888', border: 'none', borderRadius: 4, padding: '6px 18px' }}>Delete Collection</button>
@@ -481,7 +481,7 @@ const Collections = () => {
 								{/* Export dialog */}
 								{showExportDialog && (
 									<div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.18)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-										<div style={{ background: '#fff', padding: 32, borderRadius: 10, minWidth: 320, boxShadow: '0 4px 32px rgba(0,0,0,0.18)' }}>
+										<div className="mobile-modal-panel" style={{ background: '#fff', padding: 32, borderRadius: 10, minWidth: 320, boxShadow: '0 4px 32px rgba(0,0,0,0.18)' }}>
 											<h3 style={{ marginTop: 0, marginBottom: 18, color: '#1976d2' }}>Export Collections</h3>
 											<div style={{ marginBottom: 18 }}>
 												<label style={{ display: 'block', marginBottom: 8 }}>
@@ -503,7 +503,7 @@ const Collections = () => {
 					{/* Modal for Add/Edit Collection */}
 					{showModal && (
 						<div style={modalStyle}>
-							<div style={formBoxStyle}>
+							<div className="mobile-modal-panel" style={formBoxStyle}>
 								<h3 style={{ marginTop: 0, color: 'navy' }}>{isEditMode ? 'Edit Collection' : 'Add Collection'}</h3>
 								<form onSubmit={handleFormSubmit}>
 									<div style={{ marginBottom: 10 }}>
@@ -631,7 +631,7 @@ const Collections = () => {
 				>Clear</button>
 				</div>
 
-				<div style={{ maxHeight: 'none', overflowY: 'visible', width: '100%' }}>
+				<div className="desktop-table-wrap">
 					<table className="fixed-header-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
 								<thead>
 									<tr style={{ position: 'sticky', top: 0, background: '#fafbfc', zIndex: 10 }}>
@@ -686,6 +686,45 @@ const Collections = () => {
 							</tr>
 						</tfoot>
 					</table>
+				</div>
+				<div className="mobile-card-list">
+					{filteredData.length === 0 ? (
+						<div className="mobile-record-card">No collections found.</div>
+					) : filteredData.map((row, idx) => (
+						<div
+							key={row.collection_id || idx}
+							className={`mobile-record-card ${selectedRow && selectedRow.collection_id === row.collection_id ? 'selected' : ''}`}
+							onClick={() => setSelectedRow(row)}
+						>
+							<div className="mobile-card-title">
+								<div>
+									{row.customer_name || 'Collection'}
+									<div className="mobile-card-subtitle">{row.customer_id} · RV {row.collection_id}</div>
+								</div>
+								<span className="mobile-badge">{row.collection_type || 'Collection'}</span>
+							</div>
+							<div className="mobile-card-grid">
+								<div className="mobile-card-field">
+									<span className="mobile-card-label">Date</span>
+									<span className="mobile-card-value">{row.collection_date ? formatDate(String(row.collection_date).split('T')[0]) : ''}</span>
+								</div>
+								<div className="mobile-card-field">
+									<span className="mobile-card-label">Amount</span>
+									<span className="mobile-card-value">{Number(row.collection_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+								</div>
+								<div className="mobile-card-field full">
+									<span className="mobile-card-label">Collected By</span>
+									<span className="mobile-card-value">{row.collected_by_name || ''}</span>
+								</div>
+							</div>
+						</div>
+					))}
+					<div className="mobile-record-card">
+						<div className="mobile-card-title">
+							<div>Total Collected</div>
+							<span>{totalCollected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+						</div>
+					</div>
 				</div>
 			</div>
 		);

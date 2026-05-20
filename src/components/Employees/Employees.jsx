@@ -135,7 +135,7 @@ const Employees = () => {
 	return (
 		<div style={{ padding: 24 }}>
 			<h2 style={{ color: 'navy', marginBottom: 20 }}>Employees</h2>
-			<div style={{ marginBottom: 16, fontSize: '13px' }}>
+			<div className="mobile-toolbar" style={{ marginBottom: 16, fontSize: '13px' }}>
 				<input
 					type="text"
 					placeholder="Search employee..."
@@ -146,7 +146,7 @@ const Employees = () => {
 				<button onClick={loadEmployees} style={{ padding: '6px 18px', fontSize: '13px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4 }}>Refresh</button>
 				{resetSuccess && <span style={{ marginLeft: 12, color: '#067647', fontWeight: 600 }}>{resetSuccess}</span>}
 			</div>
-			<div style={{ maxHeight: 'none', overflowY: 'visible', width: '100%' }}>
+			<div className="desktop-table-wrap">
 				<table className="fixed-header-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
 					<thead>
 						<tr style={{ position: 'sticky', top: 0, background: '#fafbfc', zIndex: 10 }}>
@@ -205,6 +205,55 @@ const Employees = () => {
 					</tbody>
 				</table>
 			</div>
+			<div className="mobile-card-list">
+				{loading ? (
+					<div className="mobile-record-card">Loading...</div>
+				) : filteredEmployees.length === 0 ? (
+					<div className="mobile-record-card">No employees found.</div>
+				) : filteredEmployees.map((emp, idx) => (
+					<div className="mobile-record-card" key={emp.employee_id || idx}>
+						<div className="mobile-card-title">
+							<div>
+								{emp.employee_name || 'Employee'}
+								<div className="mobile-card-subtitle">{emp.employee_id || emp.login_email || ''}</div>
+							</div>
+							{emp.role && <span className="mobile-badge">{emp.role}</span>}
+						</div>
+						<div className="mobile-card-grid">
+							<div className="mobile-card-field">
+								<span className="mobile-card-label">Mobile</span>
+								<span className="mobile-card-value">{emp.mobile_phone || ''}</span>
+							</div>
+							<div className="mobile-card-field">
+								<span className="mobile-card-label">Status</span>
+								<span className="mobile-card-value">{emp.employment_status || ''}</span>
+							</div>
+							<div className="mobile-card-field full">
+								<span className="mobile-card-label">Email</span>
+								<span className="mobile-card-value">{emp.email || emp.login_email || ''}</span>
+							</div>
+							<div className="mobile-card-field">
+								<span className="mobile-card-label">Login Active</span>
+								<span className="mobile-card-value">{typeof emp.login_active === 'boolean' ? (emp.login_active ? 'Yes' : 'No') : ''}</span>
+							</div>
+							<div className="mobile-card-field">
+								<span className="mobile-card-label">Can Collect</span>
+								<span className="mobile-card-value">{typeof emp.can_collect === 'boolean' ? (emp.can_collect ? 'Yes' : 'No') : ''}</span>
+							</div>
+						</div>
+						<div className="mobile-card-actions">
+							<button
+								type="button"
+								onClick={() => openResetModal(emp)}
+								disabled={!emp.employee_id}
+								style={{ padding: '7px 12px', fontSize: '12px', background: '#fff', color: '#1976d2', border: '1px solid #1976d2', borderRadius: 4 }}
+							>
+								Reset Password
+							</button>
+						</div>
+					</div>
+				))}
+			</div>
 			{resetEmployee && (
 				<div
 					style={{
@@ -218,6 +267,7 @@ const Employees = () => {
 					}}
 				>
 					<form
+						className="mobile-modal-panel"
 						onSubmit={handleResetPassword}
 						style={{
 							width: 'min(100%, 420px)',

@@ -308,7 +308,7 @@ const Loans = () => {
 	return (
 		<div style={{ padding: 24 }}>
 			<h2 style={{ color: 'navy', marginBottom: 20 }}>Loans</h2>
-			<div style={{ marginBottom: 16, fontSize: '13px', display: 'flex', alignItems: 'center', gap: 10 }}>
+			<div className="mobile-toolbar" style={{ marginBottom: 16, fontSize: '13px', display: 'flex', alignItems: 'center', gap: 10 }}>
 				<input
 					type="text"
 					placeholder="Filter loans..."
@@ -381,7 +381,7 @@ const Loans = () => {
 					alignItems: 'center',
 					justifyContent: 'center',
 				}}>
-					<form onSubmit={handleNewLoanSubmit} style={{
+					<form className="mobile-modal-panel" onSubmit={handleNewLoanSubmit} style={{
 						background: '#fff',
 						borderRadius: 8,
 						boxShadow: '0 2px 16px rgba(0,0,0,0.15)',
@@ -486,7 +486,7 @@ const Loans = () => {
 					</form>
 				</div>
 			)}
-			<div style={{ maxHeight: 'none', overflowY: 'visible', width: '100%' }}>
+			<div className="desktop-table-wrap">
 				<table className="fixed-header-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
 					<thead>
 						<tr style={{ position: 'sticky', top: 0, background: '#fafbfc', zIndex: 10 }}>
@@ -586,6 +586,76 @@ const Loans = () => {
 						</tr>
 					</tfoot>
 				</table>
+			</div>
+			<div className="mobile-card-list">
+				{loading || collectionsLoading ? (
+					<div className="mobile-record-card">Loading...</div>
+				) : filteredLoans.length === 0 ? (
+					<div className="mobile-record-card">No loans found.</div>
+				) : filteredLoans.map((loan, idx) => {
+					const collected = getCollectedAmount(loan.loan_id);
+					const issued = parseFloat(loan.issue_amount) || 0;
+					const balance = issued - collected;
+					const open = isOpenLoan(loan);
+
+					return (
+						<div
+							key={loan.loan_id || idx}
+							className={`mobile-record-card ${selectedLoan?.loan_id === loan.loan_id ? 'selected' : ''}`}
+							onClick={() => setSelectedLoan(open ? loan : null)}
+						>
+							<div className="mobile-card-title">
+								<div>
+									{loan.customer_name || 'Loan'}
+									<div className="mobile-card-subtitle">Loan {loan.loan_id} · Customer {loan.customer_id}</div>
+								</div>
+								<span className="mobile-badge">{open ? 'Open' : 'Closed'}</span>
+							</div>
+							<div className="mobile-card-grid">
+								<div className="mobile-card-field">
+									<span className="mobile-card-label">Loan Type</span>
+									<span className="mobile-card-value">{formatLoanType(loan.loan_type)}</span>
+								</div>
+								<div className="mobile-card-field">
+									<span className="mobile-card-label">Issue Date</span>
+									<span className="mobile-card-value">{loan.issue_date ? formatDate(String(loan.issue_date).split('T')[0]) : ''}</span>
+								</div>
+								<div className="mobile-card-field">
+									<span className="mobile-card-label">Issued</span>
+									<span className="mobile-card-value">{issued.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+								</div>
+								<div className="mobile-card-field">
+									<span className="mobile-card-label">Collected</span>
+									<span className="mobile-card-value">{collected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+								</div>
+								<div className="mobile-card-field full">
+									<span className="mobile-card-label">Balance</span>
+									<span className="mobile-card-value">{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+								</div>
+							</div>
+						</div>
+					);
+				})}
+				<div className="mobile-record-card">
+					<div className="mobile-card-title">
+						<div>Totals</div>
+						<span>{filteredLoans.length.toLocaleString()} loans</span>
+					</div>
+					<div className="mobile-card-grid">
+						<div className="mobile-card-field">
+							<span className="mobile-card-label">Issued</span>
+							<span className="mobile-card-value">{totalIssued.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+						</div>
+						<div className="mobile-card-field">
+							<span className="mobile-card-label">Collected</span>
+							<span className="mobile-card-value">{totalCollected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+						</div>
+						<div className="mobile-card-field full">
+							<span className="mobile-card-label">Balance</span>
+							<span className="mobile-card-value">{totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	);

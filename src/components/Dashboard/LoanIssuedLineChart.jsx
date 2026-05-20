@@ -47,7 +47,7 @@ const LoanIssuedLineChart = () => {
   if (!chartData) return null;
 
   return (
-    <div style={{ width: '100%', maxWidth: '1600px', height: '400px', margin: '40px auto' }}>
+    <div className="dashboard-line-chart">
       <Line data={chartData} options={lineOptions} />
     </div>
   );

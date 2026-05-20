@@ -1,0 +1,19 @@
+{
+  "short_name": "Sri Vallavan",
+  "name": "Sri Vallavan Finance",
+  "description": "Sri Vallavan finance operations application",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fafbfc",
+  "theme_color": "#1976d2",
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

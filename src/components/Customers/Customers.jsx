@@ -78,7 +78,7 @@ const Customers = () => {
 	return (
 		<div style={{ padding: 24 }}>
 			<h2 style={{ color: 'navy', marginBottom: 10 }}>Customers</h2>
-			<div className="sticky-toolbar" style={{ display: 'flex', alignItems: 'center', marginBottom: 12, position: 'sticky', top: 0, background: '#fff', zIndex: 20, padding: '12px 0 12px 0', boxShadow: '0 2px 8px -6px #aaa' }}>
+			<div className="sticky-toolbar mobile-toolbar" style={{ display: 'flex', alignItems: 'center', marginBottom: 12, position: 'sticky', top: 0, background: '#fff', zIndex: 20, padding: '12px 0 12px 0', boxShadow: '0 2px 8px -6px #aaa' }}>
 				<span style={{ fontSize: 15, color: '#555', marginRight: 24 }}>{filteredCustomers.length} records</span>
 				<input
 					type="text"
@@ -95,7 +95,7 @@ const Customers = () => {
 					   />
 				   )}
 			</div>
-			<div style={{ maxHeight: 'none', overflowY: 'visible', width: '100%' }}>
+			<div className="desktop-table-wrap">
 				<table className="fixed-header-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff', boxShadow: '0 1px 4px #eee' }}>
 					<thead className="sticky-header">
 						<tr>
@@ -156,6 +156,41 @@ const Customers = () => {
 						)}
 					</tbody>
 				</table>
+			</div>
+			<div className="mobile-card-list">
+				{loading ? (
+					<div className="mobile-record-card">Loading...</div>
+				) : sortedCustomers.length === 0 ? (
+					<div className="mobile-record-card">No customers found.</div>
+				) : sortedCustomers.map((cust, idx) => (
+					<div className="mobile-record-card" key={cust.customer_id || idx}>
+						<div className="mobile-card-title">
+							<div>
+								{cust.customer_name || 'Customer'}
+								<div className="mobile-card-subtitle">{cust.customer_id} · {cust.mobile_number || ''}</div>
+							</div>
+							{cust.customer_category && <span className="mobile-badge">{cust.customer_category}</span>}
+						</div>
+						<div className="mobile-card-grid">
+							<div className="mobile-card-field">
+								<span className="mobile-card-label">Area</span>
+								<span className="mobile-card-value">{cust.area || ''}</span>
+							</div>
+							<div className="mobile-card-field">
+								<span className="mobile-card-label">City</span>
+								<span className="mobile-card-value">{cust.city || ''}</span>
+							</div>
+							<div className="mobile-card-field">
+								<span className="mobile-card-label">DOB</span>
+								<span className="mobile-card-value">{cust.date_of_birth ? formatDate(String(cust.date_of_birth).split('T')[0]) : ''}</span>
+							</div>
+							<div className="mobile-card-field">
+								<span className="mobile-card-label">Occupation</span>
+								<span className="mobile-card-value">{cust.occupation || ''}</span>
+							</div>
+						</div>
+					</div>
+				))}
 			</div>
 			<style>{`
 				.badge {
