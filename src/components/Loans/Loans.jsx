@@ -44,6 +44,20 @@ function formatLoanType(loanType) {
 	return String(loanType || '').replace(/\s*loan\s*/i, '').trim();
 }
 
+function formatAmount(value) {
+	return (parseFloat(value) || 0).toLocaleString(undefined, {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	});
+}
+
+function normalizeWhatsAppPhone(value) {
+	const digits = String(value || '').replace(/\D/g, '');
+	if (digits.length === 10) return `91${digits}`;
+	if (digits.length > 10 && digits.startsWith('0')) return digits.slice(1);
+	return digits;
+}
+
 function addDaysUtc(dateObj, days) {
 	const date = new Date(dateObj);
 	date.setUTCDate(date.getUTCDate() + days);
@@ -249,6 +263,88 @@ const Loans = () => {
 		return collectedByLoanId[String(loan_id || '').trim()] || 0;
 	}
 
+	function getLoanCollections(loan_id) {
+		const loanId = String(loan_id || '').trim();
+		return collections
+			.filter(collection => String(collection.loan_id || '').trim() === loanId)
+			.sort((a, b) => String(a.collection_date || '').localeCompare(String(b.collection_date || '')));
+	}
+
+	function buildWhatsAppMessage(loan) {
+		const loanCollections = getLoanCollections(loan.loan_id);
+		const issued = parseFloat(loan.issue_amount) || 0;
+		const collected = getCollectedAmount(loan.loan_id);
+		const balance = issued - collected;
+		const collectionLines = loanCollections.length
+			? loanCollections.map((collection, index) => {
+				const collectionDate = collection.collection_date
+					? formatDate(String(collection.collection_date).split('T')[0])
+					: '';
+				const amount = formatAmount(collection.collection_amount);
+				const type = collection.collection_type || '-';
+				const collectedBy = collection.collected_by_name || '-';
+				return `${index + 1}. ${collectionDate} - Rs. ${amount} - ${type} - Collected by ${collectedBy}`;
+			}).join('\n')
+			: 'No collections recorded for this loan.';
+
+		return [
+			`Dear ${loan.customer_name || 'Customer'},`,
+			'',
+			'Your active loan collection details:',
+			'',
+			`Loan ID: ${loan.loan_id || ''}`,
+			`Loan Type: ${formatLoanType(loan.loan_type)}`,
+			`Issue Amount: Rs. ${formatAmount(issued)}`,
+			`Issue Date: ${loan.issue_date ? formatDate(String(loan.issue_date).split('T')[0]) : ''}`,
+			`Maturity Date: ${loan.maturity_date ? formatDate(String(loan.maturity_date).split('T')[0]) : ''}`,
+			'',
+			'Collection Details:',
+			collectionLines,
+			'',
+			`Total Collected: Rs. ${formatAmount(collected)}`,
+			`Balance Amount: Rs. ${formatAmount(balance)}`,
+			'',
+			'Thank you,',
+			'Sri Vallavan Finance',
+		].join('\n');
+	}
+
+	async function fetchCustomerMobileNumber(customerId) {
+		const existingCustomer = customers.find(customer => customer.customer_id === customerId);
+		if (existingCustomer?.mobile_number) return existingCustomer.mobile_number;
+
+		try {
+			const res = await fetch(`${API_BASE_URL}/api/customers?text=${encodeURIComponent(customerId)}`);
+			if (!res.ok) return '';
+			const data = await res.json();
+			const customer = Array.isArray(data)
+				? data.find(item => item.customer_id === customerId)
+				: null;
+			return customer?.mobile_number || '';
+		} catch {
+			return '';
+		}
+	}
+
+	async function sendLoanCollectionsByWhatsApp(loan) {
+		if (!isOpenLoan(loan)) {
+			alert('WhatsApp collection details can be sent only for active loans.');
+			return;
+		}
+
+		const customerMobileNumber = loan.mobile_number || await fetchCustomerMobileNumber(loan.customer_id);
+		let phone = normalizeWhatsAppPhone(customerMobileNumber);
+
+		if (!phone) {
+			const manualNumber = window.prompt('Mobile number is missing. Enter WhatsApp mobile number:');
+			phone = normalizeWhatsAppPhone(manualNumber);
+			if (!phone) return;
+		}
+
+		const message = encodeURIComponent(buildWhatsAppMessage(loan));
+		window.open(`https://wa.me/${phone}?text=${message}`, '_blank', 'noopener,noreferrer');
+	}
+
 	const filteredLoans = useMemo(() => {
 		let filtered = loans.filter(loan =>
 			Object.values(loan).some(val =>
@@ -304,6 +400,7 @@ const Loans = () => {
 	}));
 	const selectedLoanTypeOption = loanTypeOptions.find(option => option.value === newLoanForm.loan_type) || null;
 	const canCloseSelectedLoan = selectedLoan && isOpenLoan(selectedLoan);
+	const canSendSelectedLoanWhatsApp = selectedLoan && isOpenLoan(selectedLoan);
 
 	return (
 		<div style={{ padding: 24 }}>
@@ -336,6 +433,22 @@ const Loans = () => {
 				</button>
 				<button
 					type="button"
+					onClick={() => canSendSelectedLoanWhatsApp && sendLoanCollectionsByWhatsApp(selectedLoan)}
+					disabled={!canSendSelectedLoanWhatsApp}
+					style={{
+						padding: '6px 18px',
+						fontSize: '13px',
+						background: canSendSelectedLoanWhatsApp ? '#25d366' : '#eee',
+						color: canSendSelectedLoanWhatsApp ? '#fff' : '#888',
+						border: 'none',
+						borderRadius: 4,
+						cursor: canSendSelectedLoanWhatsApp ? 'pointer' : 'not-allowed',
+					}}
+				>
+					WhatsApp
+				</button>
+				<button
+					type="button"
 					onClick={toggleLoanView}
 					style={{
 						padding: '6px 18px',
@@ -353,6 +466,37 @@ const Loans = () => {
 				>
 					{loanView === 'all' ? 'All Loans' : loanView === 'open' ? 'Open Loans' : 'Closed Loans'}
 				</button>
+			</div>
+			<div
+				className="loan-totals-strip"
+				style={{
+					display: 'grid',
+					gridTemplateColumns: 'repeat(5, minmax(130px, 1fr))',
+					gap: 8,
+					marginBottom: 12,
+					fontSize: '13px',
+				}}
+			>
+				<div style={{ background: '#f5f7fb', border: '1px solid #e2e8f0', borderRadius: 6, padding: '8px 10px' }}>
+					<div style={{ color: '#667085', fontSize: '12px' }}>Loans</div>
+					<div style={{ fontWeight: 700 }}>{filteredLoans.length.toLocaleString()}</div>
+				</div>
+				<div style={{ background: '#f5f7fb', border: '1px solid #e2e8f0', borderRadius: 6, padding: '8px 10px' }}>
+					<div style={{ color: '#667085', fontSize: '12px' }}>Issued</div>
+					<div style={{ fontWeight: 700 }}>{formatAmount(totalIssued)}</div>
+				</div>
+				<div style={{ background: '#f5f7fb', border: '1px solid #e2e8f0', borderRadius: 6, padding: '8px 10px' }}>
+					<div style={{ color: '#667085', fontSize: '12px' }}>Collected</div>
+					<div style={{ fontWeight: 700 }}>{formatAmount(totalCollected)}</div>
+				</div>
+				<div style={{ background: '#f5f7fb', border: '1px solid #e2e8f0', borderRadius: 6, padding: '8px 10px' }}>
+					<div style={{ color: '#667085', fontSize: '12px' }}>Balance</div>
+					<div style={{ fontWeight: 700 }}>{formatAmount(totalBalance)}</div>
+				</div>
+				<div style={{ background: '#f5f7fb', border: '1px solid #e2e8f0', borderRadius: 6, padding: '8px 10px' }}>
+					<div style={{ color: '#667085', fontSize: '12px' }}>Interest</div>
+					<div style={{ fontWeight: 700 }}>{formatAmount(totalInterestReceived)}</div>
+				</div>
 			</div>
 			{showCloseLoanModal && (
 				<CloseLoanForm
@@ -523,11 +667,11 @@ const Loans = () => {
 									{columns.map(col => {
 										let value = loan[col.key];
 										if (col.key === 'collected_amount') {
-											value = getCollectedAmount(loan.loan_id).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+											value = formatAmount(getCollectedAmount(loan.loan_id));
 										} else if (col.key === 'balance') {
 											const issued = parseFloat(loan.issue_amount) || 0;
 											const collected = getCollectedAmount(loan.loan_id);
-											value = (issued - collected).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+											value = formatAmount(issued - collected);
 										} else if (col.key === 'loan_type') {
 											value = formatLoanType(value);
 										} else if (col.key.toLowerCase().includes('date') && value) {
@@ -630,9 +774,23 @@ const Loans = () => {
 								</div>
 								<div className="mobile-card-field full">
 									<span className="mobile-card-label">Balance</span>
-									<span className="mobile-card-value">{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+									<span className="mobile-card-value">{formatAmount(balance)}</span>
 								</div>
 							</div>
+							{open && (
+								<div className="mobile-card-actions">
+									<button
+										type="button"
+										onClick={(event) => {
+											event.stopPropagation();
+											sendLoanCollectionsByWhatsApp(loan);
+										}}
+										style={{ padding: '7px 12px', fontSize: '13px', background: '#25d366', color: '#fff', border: 'none', borderRadius: 4 }}
+									>
+										Send WhatsApp
+									</button>
+								</div>
+							)}
 						</div>
 					);
 				})}
