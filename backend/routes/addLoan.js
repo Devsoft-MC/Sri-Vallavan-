@@ -34,7 +34,7 @@ const calculateDefaultMaturityDate = (loanTypeCode, issueDateObj) => {
 };
 
 // Modularized loan endpoints.
-export function addLoanEndpoint(app, pool) {
+export function addLoanEndpoint(app, pool, requireCreateLoans = (req, res, next) => next()) {
   app.get('/api/loans/maturity-preview', async (req, res) => {
     const { loan_type, issue_date } = req.query;
     const issueDateObj = parseDate(issue_date);
@@ -55,7 +55,7 @@ export function addLoanEndpoint(app, pool) {
     });
   });
 
-  app.post('/api/loans', async (req, res) => {
+  app.post('/api/loans', requireCreateLoans, async (req, res) => {
     const { customer_id, loan_type, issue_date, issue_amount, interest_received, maturity_date } = req.body;
     const issueDateObj = parseDate(issue_date);
     if (!issueDateObj) {

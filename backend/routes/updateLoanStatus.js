@@ -1,6 +1,6 @@
 // POST /api/loans/status - update loan status
-export function updateLoanStatusEndpoint(app, pool) {
-  app.post('/api/loans/close', async (req, res) => {
+export function updateLoanStatusEndpoint(app, pool, requireCreateLoans = (req, res, next) => next()) {
+  app.post('/api/loans/close', requireCreateLoans, async (req, res) => {
     const { loan_id, close_date, remarks } = req.body;
     if (!loan_id || !close_date) {
       return res.status(400).json({ error: 'loan_id and close_date are required' });
@@ -25,7 +25,7 @@ export function updateLoanStatusEndpoint(app, pool) {
     }
   });
 
-  app.post('/api/loans/status', async (req, res) => {
+  app.post('/api/loans/status', requireCreateLoans, async (req, res) => {
     const { loan_id, status, interest_received, adjustment, close_date } = req.body;
     if (!loan_id || !status) {
       return res.status(400).json({ error: 'loan_id and status are required' });

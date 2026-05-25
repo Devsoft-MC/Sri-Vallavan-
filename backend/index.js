@@ -10,7 +10,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 const { Pool } = pkg;
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_change_me';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is required. Set a strong random value in the VPS .env file.');
+}
 const JWT_EXPIRES_IN = '8h';
 
 // Auth middleware
@@ -34,6 +37,54 @@ const requireRole = (...roles) => (req, res, next) => {
   next();
 };
 
+const permissionRoleMap = {
+  collect: ['Admin', 'Manager', 'Collection Agent'],
+  create_loans: ['Admin', 'Manager', 'Loan Officer'],
+  manage_customers: ['Admin', 'Manager', 'Loan Officer'],
+  manage_employees: ['Admin'],
+};
+
+const requirePermission = (permission) => async (req, res, next) => {
+  if (!req.user?.employee_id) {
+    return res.status(401).json({ error: 'Unauthorised' });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        role,
+        employment_status,
+        can_collect,
+        can_create_loans,
+        can_manage_customers
+      FROM employees
+      WHERE employee_id = $1
+      `,
+      [req.user.employee_id]
+    );
+
+    const employee = result.rows[0];
+    if (!employee || employee.employment_status !== 'Active') {
+      return res.status(403).json({ error: 'Employee account is not active' });
+    }
+
+    const allowedByRole = (permissionRoleMap[permission] || []).includes(employee.role);
+    const allowedByFlag =
+      (permission === 'collect' && employee.can_collect) ||
+      (permission === 'create_loans' && employee.can_create_loans) ||
+      (permission === 'manage_customers' && employee.can_manage_customers);
+
+    if (!allowedByRole && !allowedByFlag) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    next();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 const app = express();
 app.use(cors({
   origin: [
@@ -49,6 +100,20 @@ app.use('/favicon.ico', express.static(path.join(process.cwd(), 'favicon.ico')))
 app.get('/', (req, res) => {
   res.send('Backend is running!');
 });
+
+const publicApiRoutes = new Set([
+  'POST /api/login',
+  'POST /api/auth/login',
+  'GET /api/test',
+]);
+
+const requireApiAuth = (req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
+  if (publicApiRoutes.has(`${req.method} ${req.baseUrl}${req.path}`)) return next();
+  return requireAuth(req, res, next);
+};
+
+app.use('/api', requireApiAuth);
 
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -69,13 +134,13 @@ import { loansListEndpoint } from './routes/loansList.js';
 import { loanTypesEndpoint } from './routes/loanTypes.js';
 import { updateLoanStatusEndpoint } from './routes/updateLoanStatus.js';
 // Register the addCollection, editCollection, and deleteCollection endpoints after app and pool are initialized
-addCollectionEndpoint(app, pool);
-addLoanEndpoint(app, pool);
-editCollectionEndpoint(app, pool);
-deleteCollectionEndpoint(app, pool);
+addCollectionEndpoint(app, pool, requirePermission('collect'));
+addLoanEndpoint(app, pool, requirePermission('create_loans'));
+editCollectionEndpoint(app, pool, requirePermission('collect'));
+deleteCollectionEndpoint(app, pool, requirePermission('collect'));
 loansListEndpoint(app, pool);
 loanTypesEndpoint(app, pool);
-updateLoanStatusEndpoint(app, pool);
+updateLoanStatusEndpoint(app, pool, requirePermission('create_loans'));
 
 app.get('/api/loans-by-type', async (req, res) => {
   try {
@@ -356,7 +421,7 @@ app.get('/api/customers', async (req, res) => {
   }
 });
 
-app.post('/api/customers', async (req, res) => {
+app.post('/api/customers', requirePermission('manage_customers'), async (req, res) => {
   const {
     customer_name,
     date_of_birth,
@@ -470,7 +535,7 @@ app.post('/api/customers', async (req, res) => {
 });
 
 // UPDATED ENDPOINT: Update customer (now uses area_id instead of area text)
-app.put('/api/customers/:customer_id', async (req, res) => {
+app.put('/api/customers/:customer_id', requirePermission('manage_customers'), async (req, res) => {
   const { customer_id } = req.params;
   const {
     customer_name,
@@ -556,7 +621,7 @@ app.put('/api/customers/:customer_id', async (req, res) => {
 });
 
 // NEW ENDPOINT: Add area (for creating new areas)
-app.post('/api/areas', async (req, res) => {
+app.post('/api/areas', requirePermission('manage_customers'), async (req, res) => {
   const { area_name } = req.body;
 
   if (!area_name || area_name.trim() === '') {
@@ -645,6 +710,10 @@ app.get('/api/collection-types', async (req, res) => {
 app.get('/api/employees', async (req, res) => {
   try {
     if (req.query.details === '1') {
+      if (req.user?.role !== 'Admin') {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
       const result = await pool.query(
         `
         SELECT
@@ -1046,9 +1115,9 @@ app.post('/api/login', async (req, res) => {
   try {
     let emp = null;
 
-    const adminUser = process.env.AUTH_USER || 'admin';
-    const adminPassword = process.env.AUTH_PASSWORD || 'admin123';
-    if (loginName === adminUser && password === adminPassword) {
+    const adminUser = process.env.AUTH_USER;
+    const adminPassword = process.env.AUTH_PASSWORD;
+    if (adminUser && adminPassword && loginName === adminUser && password === adminPassword) {
       const empRow = await pool.query(
         `
         SELECT employee_id, employee_name, email, role, designation, employment_status, can_collect, can_create_loans, can_manage_customers
@@ -1184,8 +1253,8 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
 
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Serve uploaded files only to authenticated users.
+app.use('/uploads', requireAuth, express.static(path.join(process.cwd(), 'uploads')));
 
 // GET /api/customers/:customerId/documents
 app.get('/api/customers/:customerId/documents', async (req, res) => {
@@ -1202,7 +1271,7 @@ app.get('/api/customers/:customerId/documents', async (req, res) => {
 });
 
 // POST /api/customers/:customerId/documents/:docType
-app.post('/api/customers/:customerId/documents/:docType', (req, res) => {
+app.post('/api/customers/:customerId/documents/:docType', requirePermission('manage_customers'), (req, res) => {
   const { customerId, docType } = req.params;
   const validTypes = ['customer_adhar', 'guarantor_adhar', 'customer_photo'];
   if (!validTypes.includes(docType)) {
@@ -1227,7 +1296,7 @@ app.post('/api/customers/:customerId/documents/:docType', (req, res) => {
 });
 
 // DELETE /api/customers/:customerId/documents/:docType
-app.delete('/api/customers/:customerId/documents/:docType', async (req, res) => {
+app.delete('/api/customers/:customerId/documents/:docType', requirePermission('manage_customers'), async (req, res) => {
   try {
     const { customerId, docType } = req.params;
     const result = await pool.query(

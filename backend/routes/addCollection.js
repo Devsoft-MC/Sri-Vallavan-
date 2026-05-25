@@ -1,6 +1,6 @@
 // Modularized POST /api/collections endpoint
-export function addCollectionEndpoint(app, pool) {
-  app.post('/api/collections', async (req, res) => {
+export function addCollectionEndpoint(app, pool, requireCollect = (req, res, next) => next()) {
+  app.post('/api/collections', requireCollect, async (req, res) => {
     const { customer_id, loan_id, collection_date, collection_amount, collection_type, collected_by_name } = req.body;
     try {
       // Get the last_number for code 'RV' from serials table

@@ -1,6 +1,6 @@
 // Modularized PUT /api/collections/:collection_id endpoint for editing a collection
-export function editCollectionEndpoint(app, pool) {
-  app.put('/api/collections/:collection_id', async (req, res) => {
+export function editCollectionEndpoint(app, pool, requireCollect = (req, res, next) => next()) {
+  app.put('/api/collections/:collection_id', requireCollect, async (req, res) => {
     const { collection_id } = req.params;
     const { customer_id, loan_id, collection_date, collection_amount, collection_type, collected_by_name } = req.body;
     try {

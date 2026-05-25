@@ -1,6 +1,6 @@
 // Modularized DELETE /api/collections/:collection_id endpoint for deleting a collection
-export function deleteCollectionEndpoint(app, pool) {
-  app.delete('/api/collections/:collection_id', async (req, res) => {
+export function deleteCollectionEndpoint(app, pool, requireCollect = (req, res, next) => next()) {
+  app.delete('/api/collections/:collection_id', requireCollect, async (req, res) => {
     const { collection_id } = req.params;
     try {
       const result = await pool.query(

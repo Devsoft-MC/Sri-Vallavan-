@@ -51,13 +51,6 @@ function formatAmount(value) {
 	});
 }
 
-function normalizeWhatsAppPhone(value) {
-	const digits = String(value || '').replace(/\D/g, '');
-	if (digits.length === 10) return `91${digits}`;
-	if (digits.length > 10 && digits.startsWith('0')) return digits.slice(1);
-	return digits;
-}
-
 function addDaysUtc(dateObj, days) {
 	const date = new Date(dateObj);
 	date.setUTCDate(date.getUTCDate() + days);
@@ -263,88 +256,6 @@ const Loans = () => {
 		return collectedByLoanId[String(loan_id || '').trim()] || 0;
 	}
 
-	function getLoanCollections(loan_id) {
-		const loanId = String(loan_id || '').trim();
-		return collections
-			.filter(collection => String(collection.loan_id || '').trim() === loanId)
-			.sort((a, b) => String(a.collection_date || '').localeCompare(String(b.collection_date || '')));
-	}
-
-	function buildWhatsAppMessage(loan) {
-		const loanCollections = getLoanCollections(loan.loan_id);
-		const issued = parseFloat(loan.issue_amount) || 0;
-		const collected = getCollectedAmount(loan.loan_id);
-		const balance = issued - collected;
-		const collectionLines = loanCollections.length
-			? loanCollections.map((collection, index) => {
-				const collectionDate = collection.collection_date
-					? formatDate(String(collection.collection_date).split('T')[0])
-					: '';
-				const amount = formatAmount(collection.collection_amount);
-				const type = collection.collection_type || '-';
-				const collectedBy = collection.collected_by_name || '-';
-				return `${index + 1}. ${collectionDate} - Rs. ${amount} - ${type} - Collected by ${collectedBy}`;
-			}).join('\n')
-			: 'No collections recorded for this loan.';
-
-		return [
-			`Dear ${loan.customer_name || 'Customer'},`,
-			'',
-			'Your active loan collection details:',
-			'',
-			`Loan ID: ${loan.loan_id || ''}`,
-			`Loan Type: ${formatLoanType(loan.loan_type)}`,
-			`Issue Amount: Rs. ${formatAmount(issued)}`,
-			`Issue Date: ${loan.issue_date ? formatDate(String(loan.issue_date).split('T')[0]) : ''}`,
-			`Maturity Date: ${loan.maturity_date ? formatDate(String(loan.maturity_date).split('T')[0]) : ''}`,
-			'',
-			'Collection Details:',
-			collectionLines,
-			'',
-			`Total Collected: Rs. ${formatAmount(collected)}`,
-			`Balance Amount: Rs. ${formatAmount(balance)}`,
-			'',
-			'Thank you,',
-			'Sri Vallavan Finance',
-		].join('\n');
-	}
-
-	async function fetchCustomerMobileNumber(customerId) {
-		const existingCustomer = customers.find(customer => customer.customer_id === customerId);
-		if (existingCustomer?.mobile_number) return existingCustomer.mobile_number;
-
-		try {
-			const res = await fetch(`${API_BASE_URL}/api/customers?text=${encodeURIComponent(customerId)}`);
-			if (!res.ok) return '';
-			const data = await res.json();
-			const customer = Array.isArray(data)
-				? data.find(item => item.customer_id === customerId)
-				: null;
-			return customer?.mobile_number || '';
-		} catch {
-			return '';
-		}
-	}
-
-	async function sendLoanCollectionsByWhatsApp(loan) {
-		if (!isOpenLoan(loan)) {
-			alert('WhatsApp collection details can be sent only for active loans.');
-			return;
-		}
-
-		const customerMobileNumber = loan.mobile_number || await fetchCustomerMobileNumber(loan.customer_id);
-		let phone = normalizeWhatsAppPhone(customerMobileNumber);
-
-		if (!phone) {
-			const manualNumber = window.prompt('Mobile number is missing. Enter WhatsApp mobile number:');
-			phone = normalizeWhatsAppPhone(manualNumber);
-			if (!phone) return;
-		}
-
-		const message = encodeURIComponent(buildWhatsAppMessage(loan));
-		window.open(`https://wa.me/${phone}?text=${message}`, '_blank', 'noopener,noreferrer');
-	}
-
 	const filteredLoans = useMemo(() => {
 		let filtered = loans.filter(loan =>
 			Object.values(loan).some(val =>
@@ -400,7 +311,6 @@ const Loans = () => {
 	}));
 	const selectedLoanTypeOption = loanTypeOptions.find(option => option.value === newLoanForm.loan_type) || null;
 	const canCloseSelectedLoan = selectedLoan && isOpenLoan(selectedLoan);
-	const canSendSelectedLoanWhatsApp = selectedLoan && isOpenLoan(selectedLoan);
 
 	return (
 		<div style={{ padding: 24 }}>
@@ -430,22 +340,6 @@ const Loans = () => {
 					}}
 				>
 					Close Loan
-				</button>
-				<button
-					type="button"
-					onClick={() => canSendSelectedLoanWhatsApp && sendLoanCollectionsByWhatsApp(selectedLoan)}
-					disabled={!canSendSelectedLoanWhatsApp}
-					style={{
-						padding: '6px 18px',
-						fontSize: '13px',
-						background: canSendSelectedLoanWhatsApp ? '#25d366' : '#eee',
-						color: canSendSelectedLoanWhatsApp ? '#fff' : '#888',
-						border: 'none',
-						borderRadius: 4,
-						cursor: canSendSelectedLoanWhatsApp ? 'pointer' : 'not-allowed',
-					}}
-				>
-					WhatsApp
 				</button>
 				<button
 					type="button"
@@ -777,20 +671,6 @@ const Loans = () => {
 									<span className="mobile-card-value">{formatAmount(balance)}</span>
 								</div>
 							</div>
-							{open && (
-								<div className="mobile-card-actions">
-									<button
-										type="button"
-										onClick={(event) => {
-											event.stopPropagation();
-											sendLoanCollectionsByWhatsApp(loan);
-										}}
-										style={{ padding: '7px 12px', fontSize: '13px', background: '#25d366', color: '#fff', border: 'none', borderRadius: 4 }}
-									>
-										Send WhatsApp
-									</button>
-								</div>
-							)}
 						</div>
 					);
 				})}

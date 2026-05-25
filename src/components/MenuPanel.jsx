@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import './HomePage.css';
+import { canAccessSection, getCurrentEmployee } from '../permissions';
 
 const mainItems = ['Dashboard', 'Collections', 'Loans', 'Customers', 'Employees', 'Reports'];
-const reportItems = ['Loan Report'];
+const reportItems = ['Loan Report', 'Customer Analysis', 'Collection Details', 'Customer Status'];
 
 const MenuPanel = ({ selected, setSelected, onLogout }) => {
   const [reportsOpen, setReportsOpen] = useState(false);
+  const employee = getCurrentEmployee();
+  const visibleMainItems = mainItems.filter(item => canAccessSection(item, employee));
+  const visibleReportItems = reportItems.filter(item => canAccessSection(item, employee));
 
   const handleMainClick = (item) => {
     if (item === 'Reports') {
@@ -26,13 +30,13 @@ const MenuPanel = ({ selected, setSelected, onLogout }) => {
   return (
     <div className="menu-panel">
       <ul className="menu-list">
-        {mainItems.map(item => {
+        {visibleMainItems.map(item => {
           if (item === 'Reports') {
             return (
               <li
                 key={item}
                 className={[
-                  selected === item || reportsOpen || selected === 'Loan Report' ? 'selected' : '',
+                  selected === item || reportsOpen || visibleReportItems.includes(selected) ? 'selected' : '',
                   'flyout-parent',
                 ].filter(Boolean).join(' ')}
               >
@@ -42,7 +46,7 @@ const MenuPanel = ({ selected, setSelected, onLogout }) => {
                 </div>
                 {reportsOpen && (
                   <ul className="flyout-menu">
-                    {reportItems.map(reportItem => (
+                    {visibleReportItems.map(reportItem => (
                       <li
                         key={reportItem}
                         onClick={() => handleReportClick(reportItem)}
