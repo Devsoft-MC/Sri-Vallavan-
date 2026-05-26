@@ -127,8 +127,14 @@ function getLoanResult({ closed, issueDate, issueAmount, collectedAmount, maturi
   return 'Active';
 }
 
+function needsReviewForActiveBalance(issueDate, balanceAmount) {
+  const daysFromIssue = daysBetween(issueDate, today);
+  return daysFromIssue !== null && daysFromIssue > 120 && balanceAmount > 0;
+}
+
 function getAnalysisStatus(row) {
   if (row.total_loans === 0) return 'New Customer';
+  if (row.active_needs_review_loans > 0) return 'Needs Review';
   if (row.overdue_active_loans > 0) return 'Monitor';
   if (row.closed_loans === 0) return 'Good';
   if (row.on_time_closures === row.closed_loans) return 'Good';
@@ -239,6 +245,7 @@ const CustomerAnalysisReport = () => {
         late_closures: 0,
         active_loans: 0,
         overdue_active_loans: 0,
+        active_needs_review_loans: 0,
         total_issued: 0,
         total_collected: 0,
         balance_amount: 0,
@@ -260,6 +267,7 @@ const CustomerAnalysisReport = () => {
           late_closures: 0,
           active_loans: 0,
           overdue_active_loans: 0,
+          active_needs_review_loans: 0,
           total_issued: 0,
           total_collected: 0,
           balance_amount: 0,
@@ -301,6 +309,7 @@ const CustomerAnalysisReport = () => {
       } else {
         row.active_loans += 1;
         if (loanResult === 'Active Overdue') row.overdue_active_loans += 1;
+        if (needsReviewForActiveBalance(issueDate, balanceAmount)) row.active_needs_review_loans += 1;
       }
 
       row.loan_history.push({
