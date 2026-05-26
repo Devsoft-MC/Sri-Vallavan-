@@ -14,6 +14,14 @@ const lineOptions = {
       text: 'Total Loans Issued Amount (Last 6 Months)',
     },
   },
+  scales: {
+    y: {
+      min: 100000,
+      ticks: {
+        callback: value => Number(value).toLocaleString(),
+      },
+    },
+  },
 };
 
 const LoanIssuedLineChart = () => {
