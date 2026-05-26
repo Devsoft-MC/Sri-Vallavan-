@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import Select from 'react-select';
 import API_BASE_URL from '../../api';
 
 const today = new Date().toISOString().slice(0, 10);
@@ -219,8 +220,18 @@ const CustomerAnalysisReport = () => {
   }, []);
 
   const customerOptions = useMemo(
-    () => [...customers].sort((a, b) => String(a.customer_name || '').localeCompare(String(b.customer_name || ''))),
+    () => [...customers]
+      .sort((a, b) => String(a.customer_name || '').localeCompare(String(b.customer_name || '')))
+      .map(customer => ({
+        value: customer.customer_id,
+        label: `${customer.customer_id} - ${customer.customer_name || ''}`.trim(),
+      })),
     [customers]
+  );
+
+  const selectedCustomerOption = useMemo(
+    () => customerOptions.find(option => option.value === selectedCustomerId) || null,
+    [customerOptions, selectedCustomerId]
   );
 
   const reportRows = useMemo(() => {
@@ -423,18 +434,19 @@ const CustomerAnalysisReport = () => {
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 18 }}>
         <label style={{ fontSize: 13, color: '#444' }}>
           Customer
-          <select
-            value={selectedCustomerId}
-            onChange={event => setSelectedCustomerId(event.target.value)}
-            style={{ display: 'block', marginTop: 4, padding: 7, fontSize: 13, width: 320 }}
-          >
-            <option value="">Select Customer</option>
-            {customerOptions.map(customer => (
-              <option key={customer.customer_id} value={customer.customer_id}>
-                {customer.customer_id} - {customer.customer_name}
-              </option>
-            ))}
-          </select>
+          <Select
+            options={customerOptions}
+            value={selectedCustomerOption}
+            onChange={option => setSelectedCustomerId(option ? option.value : '')}
+            placeholder="Type code or name to search"
+            isClearable
+            isSearchable
+            styles={{
+              container: base => ({ ...base, width: 320, marginTop: 4 }),
+              control: base => ({ ...base, minHeight: 36, fontSize: 13 }),
+              menu: base => ({ ...base, zIndex: 10 }),
+            }}
+          />
         </label>
         <button
           type="button"
