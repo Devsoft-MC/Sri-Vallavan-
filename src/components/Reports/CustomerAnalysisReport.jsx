@@ -130,7 +130,7 @@ function getLoanResult({ closed, issueDate, issueAmount, collectedAmount, maturi
 function getAnalysisStatus(row) {
   if (row.total_loans === 0) return 'New Customer';
   if (row.overdue_active_loans > 0) return 'Monitor';
-  if (row.closed_loans === 0) return 'Monitor';
+  if (row.closed_loans === 0) return 'Good';
   if (row.on_time_closures === row.closed_loans) return 'Good';
   if (row.late_closures === row.closed_loans) return 'Needs Review';
   return 'Monitor';
