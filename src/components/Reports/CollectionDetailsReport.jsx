@@ -45,14 +45,18 @@ function formatDate(value) {
   return `${day}-${month}-${year}`;
 }
 
-function isActiveLoan(loan) {
-  return String(loan.status || '').toLowerCase() !== 'closed'
-    && loan.loan_status_closed !== true
-    && loan.loan_status_closed !== 'true';
-}
-
 function formatLoanType(loanType) {
   return String(loanType || '').replace(/\s*loan\s*/i, '').trim();
+}
+
+function formatLoanStatus(loan) {
+  if (String(loan.status || '').toLowerCase() === 'closed'
+    || loan.loan_status_closed === true
+    || loan.loan_status_closed === 'true') {
+    return 'Closed';
+  }
+
+  return loan.status || 'Open';
 }
 
 function normalizeWhatsAppPhone(value) {
@@ -155,11 +159,11 @@ const CollectionDetailsReport = () => {
     }, new Map())
   ), [collections]);
 
-  const activeLoanRows = useMemo(() => {
+  const loanRows = useMemo(() => {
     if (!selectedCustomerId) return [];
 
     return loans
-      .filter(loan => loan.customer_id === selectedCustomerId && isActiveLoan(loan))
+      .filter(loan => loan.customer_id === selectedCustomerId)
       .map(loan => {
         const loanCollections = collectionsByLoan.get(String(loan.loan_id || '').trim()) || [];
         const collectedAmount = loanCollections.reduce((sum, collection) => sum + toAmount(collection.collection_amount), 0);
@@ -175,7 +179,7 @@ const CollectionDetailsReport = () => {
   }, [collectionsByLoan, loans, selectedCustomerId]);
 
   const collectionRows = useMemo(() => (
-    activeLoanRows
+    loanRows
       .flatMap(loan => (collectionsByLoan.get(String(loan.loan_id || '').trim()) || []))
       .sort((a, b) => String(a.collection_date || '').localeCompare(String(b.collection_date || '')))
       .map((collection, index) => ({
@@ -183,14 +187,14 @@ const CollectionDetailsReport = () => {
         sl_no: index + 1,
       }))
       .sort((a, b) => String(b.collection_date || '').localeCompare(String(a.collection_date || '')))
-  ), [activeLoanRows, collectionsByLoan]);
+  ), [loanRows, collectionsByLoan]);
 
-  const totalIssued = activeLoanRows.reduce((sum, loan) => sum + toAmount(loan.issue_amount), 0);
-  const totalCollected = activeLoanRows.reduce((sum, loan) => sum + toAmount(loan.collected_amount), 0);
-  const totalBalance = activeLoanRows.reduce((sum, loan) => sum + toAmount(loan.balance_amount), 0);
+  const totalIssued = loanRows.reduce((sum, loan) => sum + toAmount(loan.issue_amount), 0);
+  const totalCollected = loanRows.reduce((sum, loan) => sum + toAmount(loan.collected_amount), 0);
+  const totalBalance = loanRows.reduce((sum, loan) => sum + toAmount(loan.balance_amount), 0);
 
   function buildWhatsAppMessage() {
-    const sections = activeLoanRows.map(loan => {
+    const sections = loanRows.map(loan => {
       const loanCollections = (collectionsByLoan.get(String(loan.loan_id || '').trim()) || [])
         .slice()
         .sort((a, b) => String(a.collection_date || '').localeCompare(String(b.collection_date || '')));
@@ -217,11 +221,11 @@ const CollectionDetailsReport = () => {
     return [
       `Dear ${selectedCustomer?.customer_name || 'Customer'},`,
       '',
-      'Your active loan collection details:',
+      'Your loan collection details:',
       '',
       ...sections.flatMap((section, index) => (index === 0 ? [section] : ['', section])),
       '',
-      `Total Active Loans: ${activeLoanRows.length}`,
+      `Total Loans: ${loanRows.length}`,
       `Total Collected: Rs. ${formatAmount(totalCollected)}`,
       `Total Balance: Rs. ${formatAmount(totalBalance)}`,
       '',
@@ -232,8 +236,8 @@ const CollectionDetailsReport = () => {
 
   function sendCollectionDetailsByWhatsApp() {
     if (!selectedCustomer) return;
-    if (activeLoanRows.length === 0) {
-      alert('No active loans found for this customer.');
+    if (loanRows.length === 0) {
+      alert('No loans found for this customer.');
       return;
     }
 
@@ -279,15 +283,15 @@ const CollectionDetailsReport = () => {
         <button
           type="button"
           onClick={sendCollectionDetailsByWhatsApp}
-          disabled={loading || !selectedCustomer || activeLoanRows.length === 0}
+          disabled={loading || !selectedCustomer || loanRows.length === 0}
           style={{
             padding: '8px 16px',
             fontSize: 13,
             border: '1px solid #1fae55',
             borderRadius: 4,
-            background: loading || !selectedCustomer || activeLoanRows.length === 0 ? '#f2f4f7' : '#25d366',
-            color: loading || !selectedCustomer || activeLoanRows.length === 0 ? '#98a2b3' : '#fff',
-            cursor: loading || !selectedCustomer || activeLoanRows.length === 0 ? 'not-allowed' : 'pointer',
+            background: loading || !selectedCustomer || loanRows.length === 0 ? '#f2f4f7' : '#25d366',
+            color: loading || !selectedCustomer || loanRows.length === 0 ? '#98a2b3' : '#fff',
+            cursor: loading || !selectedCustomer || loanRows.length === 0 ? 'not-allowed' : 'pointer',
           }}
         >
           WhatsApp
@@ -300,7 +304,7 @@ const CollectionDetailsReport = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(140px, 1fr))', gap: 12, marginBottom: 18 }}>
           <SummaryCard label="Customer" value={selectedCustomer.customer_name || selectedCustomer.customer_id} />
           <SummaryCard label="Mobile" value={selectedCustomer.mobile_number || '-'} />
-          <SummaryCard label="Active Loans" value={activeLoanRows.length.toLocaleString()} />
+          <SummaryCard label="Loans" value={loanRows.length.toLocaleString()} />
           <SummaryCard label="Collected" value={formatAmount(totalCollected)} />
           <SummaryCard label="Balance" value={formatAmount(totalBalance)} />
         </div>
@@ -321,10 +325,10 @@ const CollectionDetailsReport = () => {
             {loading ? (
               <tr><td colSpan={loanColumns.length} style={{ padding: 12 }}>Loading...</td></tr>
             ) : !selectedCustomerId ? (
-              <tr><td colSpan={loanColumns.length} style={{ padding: 12 }}>Select a customer to view active loans.</td></tr>
-            ) : activeLoanRows.length === 0 ? (
-              <tr><td colSpan={loanColumns.length} style={{ padding: 12 }}>No active loans found for this customer.</td></tr>
-            ) : activeLoanRows.map(row => (
+              <tr><td colSpan={loanColumns.length} style={{ padding: 12 }}>Select a customer to view loans.</td></tr>
+            ) : loanRows.length === 0 ? (
+              <tr><td colSpan={loanColumns.length} style={{ padding: 12 }}>No loans found for this customer.</td></tr>
+            ) : loanRows.map(row => (
               <tr key={row.loan_id}>
                 {loanColumns.map(column => (
                   <td key={column.key} style={{ padding: '6px', borderBottom: '1px solid #eee', textAlign: column.numeric ? 'right' : 'left' }}>
@@ -334,7 +338,7 @@ const CollectionDetailsReport = () => {
               </tr>
             ))}
           </tbody>
-          {activeLoanRows.length > 0 && (
+          {loanRows.length > 0 && (
             <tfoot>
               <tr style={{ background: '#f9f9f9', fontWeight: 700 }}>
                 <td colSpan={4} style={{ padding: '7px 6px', textAlign: 'right' }}>Totals:</td>
@@ -364,7 +368,7 @@ const CollectionDetailsReport = () => {
             ) : !selectedCustomerId ? (
               <tr><td colSpan={collectionColumns.length} style={{ padding: 12 }}>Select a customer to view collection details.</td></tr>
             ) : collectionRows.length === 0 ? (
-              <tr><td colSpan={collectionColumns.length} style={{ padding: 12 }}>No collections found for this customer's active loans.</td></tr>
+              <tr><td colSpan={collectionColumns.length} style={{ padding: 12 }}>No collections found for this customer's loans.</td></tr>
             ) : collectionRows.map(row => (
               <tr key={`${row.loan_id}-${row.collection_id}`}>
                 {collectionColumns.map(column => (
@@ -383,45 +387,60 @@ const CollectionDetailsReport = () => {
           <div className="mobile-record-card">Loading...</div>
         ) : !selectedCustomerId ? (
           <div className="mobile-record-card">Select a customer to view collection details.</div>
-        ) : activeLoanRows.length === 0 ? (
-          <div className="mobile-record-card">No active loans found for this customer.</div>
-        ) : activeLoanRows.map(loan => (
-          <div className="mobile-record-card" key={loan.loan_id}>
-            <div className="mobile-card-title">
-              <div>
-                {selectedCustomer?.customer_name || 'Customer'}
-                <div className="mobile-card-subtitle">Loan {loan.loan_id} · {formatLoanType(loan.loan_type)}</div>
+        ) : loanRows.length === 0 ? (
+          <div className="mobile-record-card">No loans found for this customer.</div>
+        ) : loanRows.map(loan => {
+          const loanCollections = (collectionsByLoan.get(String(loan.loan_id || '').trim()) || [])
+            .slice()
+            .sort((a, b) => String(b.collection_date || '').localeCompare(String(a.collection_date || '')));
+
+          return (
+            <div className="mobile-record-card" key={loan.loan_id}>
+              <div className="mobile-card-title">
+                <div>
+                  {selectedCustomer?.customer_name || 'Customer'}
+                  <div className="mobile-card-subtitle">Loan {loan.loan_id} · {formatLoanType(loan.loan_type)}</div>
+                </div>
+                <div className="mobile-badge-stack">
+                  <span className="mobile-badge">{formatLoanStatus(loan)}</span>
+                  <span className="mobile-badge">Balance {formatAmount(loan.balance_amount)}</span>
+                </div>
               </div>
-              <span className="mobile-badge">{formatAmount(loan.balance_amount)}</span>
+              <div className="mobile-card-grid">
+                <div className="mobile-card-field">
+                  <span className="mobile-card-label">Issue Date</span>
+                  <span className="mobile-card-value">{formatDate(loan.issue_date)}</span>
+                </div>
+                <div className="mobile-card-field">
+                  <span className="mobile-card-label">Maturity</span>
+                  <span className="mobile-card-value">{formatDate(loan.maturity_date)}</span>
+                </div>
+                <div className="mobile-card-field">
+                  <span className="mobile-card-label">Issued</span>
+                  <span className="mobile-card-value">{formatAmount(loan.issue_amount)}</span>
+                </div>
+                <div className="mobile-card-field">
+                  <span className="mobile-card-label">Collected</span>
+                  <span className="mobile-card-value">{formatAmount(loan.collected_amount)}</span>
+                </div>
+              </div>
+              <div className="mobile-collection-list">
+                <div className="mobile-section-title">Collections</div>
+                {loanCollections.length === 0 ? (
+                  <div className="mobile-collection-empty">No collections recorded.</div>
+                ) : loanCollections.map(collection => (
+                  <div className="mobile-collection-row" key={collection.collection_id || `${loan.loan_id}-${collection.collection_date}-${collection.collection_amount}`}>
+                    <div>
+                      <div className="mobile-collection-date">{formatDate(collection.collection_date)}</div>
+                      <div className="mobile-collection-meta">{collection.collection_type || '-'} · {collection.collected_by_name || '-'}</div>
+                    </div>
+                    <div className="mobile-collection-amount">{formatAmount(collection.collection_amount)}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="mobile-card-grid">
-              <div className="mobile-card-field">
-                <span className="mobile-card-label">Issue Date</span>
-                <span className="mobile-card-value">{formatDate(loan.issue_date)}</span>
-              </div>
-              <div className="mobile-card-field">
-                <span className="mobile-card-label">Maturity</span>
-                <span className="mobile-card-value">{formatDate(loan.maturity_date)}</span>
-              </div>
-              <div className="mobile-card-field">
-                <span className="mobile-card-label">Issued</span>
-                <span className="mobile-card-value">{formatAmount(loan.issue_amount)}</span>
-              </div>
-              <div className="mobile-card-field">
-                <span className="mobile-card-label">Collected</span>
-                <span className="mobile-card-value">{formatAmount(loan.collected_amount)}</span>
-              </div>
-              <div className="mobile-card-field full">
-                <span className="mobile-card-label">Collections</span>
-                <span className="mobile-card-value">
-                  {(collectionsByLoan.get(String(loan.loan_id || '').trim()) || [])
-                    .map(collection => `${formatDate(collection.collection_date)} - ${formatAmount(collection.collection_amount)}`)
-                    .join(', ') || '-'}
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

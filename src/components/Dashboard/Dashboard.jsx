@@ -6,9 +6,11 @@ import LoanIssuedLineChart from './LoanIssuedLineChart';
 
 
 const Dashboard = () => (
-  <div>
+  <div className="dashboard-layout">
     <div className="dashboard-chart-grid">
-      <LoanPieChart />
+      <div className="mobile-hidden-dashboard-chart">
+        <LoanPieChart />
+      </div>
       <CustomerCategoryPieChart />
     </div>
     <LoanIssuedLineChart />

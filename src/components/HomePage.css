@@ -51,6 +51,10 @@ textarea {
   gap: 40px;
 }
 
+.dashboard-layout {
+  display: block;
+}
+
 .dashboard-chart-card {
   width: min(400px, 100%);
   height: 400px;
@@ -317,6 +321,14 @@ textarea {
   font-weight: 700;
 }
 
+.mobile-badge-stack {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
 .mobile-card-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -349,6 +361,52 @@ textarea {
   display: flex;
   justify-content: flex-end;
   margin-top: 12px;
+}
+
+.mobile-section-title {
+  margin: 12px 0 6px;
+  color: #344054;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.mobile-collection-list {
+  margin-top: 2px;
+}
+
+.mobile-collection-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid #eef1f5;
+}
+
+.mobile-collection-date {
+  color: #1f2937;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.mobile-collection-meta {
+  margin-top: 2px;
+  color: #667085;
+  font-size: 0.74rem;
+}
+
+.mobile-collection-amount {
+  flex: 0 0 auto;
+  color: #1f2937;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.mobile-collection-empty {
+  padding: 8px 0 0;
+  color: #667085;
+  font-size: 0.85rem;
 }
 
 .loan-totals-strip {
@@ -521,6 +579,7 @@ textarea {
   .app-main {
     min-height: 100dvh;
     margin-left: 0;
+    padding-top: 52px;
     padding-bottom: calc(88px + env(safe-area-inset-bottom));
     overflow-x: auto;
   }
@@ -530,9 +589,16 @@ textarea {
   }
 
   .dashboard-chart-grid {
+    display: flex;
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
+    order: 2;
+  }
+
+  .dashboard-layout {
+    display: flex;
+    flex-direction: column;
   }
 
   .dashboard-chart-card {
@@ -540,10 +606,16 @@ textarea {
     margin: 18px auto;
   }
 
+  .mobile-hidden-dashboard-chart {
+    display: none;
+  }
+
   .dashboard-line-chart {
-    min-width: 640px;
+    min-width: 0;
+    width: 100%;
     height: 320px;
     margin: 18px 0;
+    order: 1;
   }
 
   .menu-panel {
@@ -591,6 +663,10 @@ textarea {
     color: #1976d2;
   }
 
+  .mobile-hidden-menu-item {
+    display: none !important;
+  }
+
   .menu-row {
     display: grid;
     place-items: center;
@@ -600,38 +676,43 @@ textarea {
   }
 
   .flyout-arrow {
-    font-size: 0.95rem;
-    transform: rotate(-90deg);
+    display: none;
   }
 
   .flyout-menu {
     position: fixed;
-    left: 12px;
+    left: auto;
     right: 12px;
     bottom: calc(76px + env(safe-area-inset-bottom));
     top: auto;
+    width: min(240px, calc(100vw - 24px));
     min-width: 0;
     display: grid;
-    gap: 6px;
+    gap: 4px;
+    padding: 8px;
+    border-radius: 8px;
   }
 
   .flyout-menu li {
     min-width: 0;
-    min-height: 44px;
+    min-height: 40px;
+    padding: 9px 12px;
     text-align: left;
     place-items: center start;
+    font-size: 0.86rem;
   }
 
   .logout-button {
-    position: absolute;
-    right: 10px;
-    top: -46px;
+    position: fixed;
+    right: 12px;
+    top: calc(8px + env(safe-area-inset-top));
     width: auto;
     min-width: 92px;
     margin: 0;
     padding: 8px 12px;
     background: #fff;
     box-shadow: 0 8px 22px rgba(15, 23, 42, 0.12);
+    z-index: 700;
   }
 
   h2 {

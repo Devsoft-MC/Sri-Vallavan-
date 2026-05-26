@@ -14,7 +14,6 @@ const MenuPanel = ({ selected, setSelected, onLogout }) => {
   const handleMainClick = (item) => {
     if (item === 'Reports') {
       setReportsOpen(current => !current);
-      setSelected('Reports');
       return;
     }
 
@@ -65,7 +64,10 @@ const MenuPanel = ({ selected, setSelected, onLogout }) => {
             <li
               key={item}
               onClick={() => handleMainClick(item)}
-              className={selected === item ? 'selected' : ''}
+              className={[
+                selected === item ? 'selected' : '',
+                ['Customers', 'Employees'].includes(item) ? 'mobile-hidden-menu-item' : '',
+              ].filter(Boolean).join(' ')}
             >
               {item}
             </li>

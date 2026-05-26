@@ -551,37 +551,78 @@ const CustomerAnalysisReport = () => {
         ) : !selectedRow ? (
           <div className="mobile-record-card">No customer selected.</div>
         ) : (
-          <div className="mobile-record-card" key={selectedRow.customer_id}>
-            <div className="mobile-card-title">
-              <div>
-                {selectedRow.customer_name || 'Customer'}
-                <div className="mobile-card-subtitle">Customer {selectedRow.customer_id} · {selectedRow.mobile_number}</div>
+          <>
+            <div className="mobile-record-card" key={selectedRow.customer_id}>
+              <div className="mobile-card-title">
+                <div>
+                  {selectedRow.customer_name || 'Customer'}
+                  <div className="mobile-card-subtitle">Customer {selectedRow.customer_id} · {selectedRow.mobile_number}</div>
+                </div>
+                <span className="mobile-badge">{selectedRow.analysis_status}</span>
               </div>
-              <span className="mobile-badge">{selectedRow.analysis_status}</span>
+              <div className="mobile-card-grid">
+                <div className="mobile-card-field">
+                  <span className="mobile-card-label">Total Loans</span>
+                  <span className="mobile-card-value">{selectedRow.total_loans}</span>
+                </div>
+                <div className="mobile-card-field">
+                  <span className="mobile-card-label">On/Before</span>
+                  <span className="mobile-card-value">{selectedRow.on_time_closures}</span>
+                </div>
+                <div className="mobile-card-field">
+                  <span className="mobile-card-label">After Maturity</span>
+                  <span className="mobile-card-value">{selectedRow.late_closures}</span>
+                </div>
+                <div className="mobile-card-field">
+                  <span className="mobile-card-label">Repayment</span>
+                  <span className="mobile-card-value">{formatPercent(selectedRow.repayment_percent)}</span>
+                </div>
+                <div className="mobile-card-field full">
+                  <span className="mobile-card-label">Balance</span>
+                  <span className="mobile-card-value">{formatAmount(selectedRow.balance_amount)}</span>
+                </div>
+              </div>
             </div>
-            <div className="mobile-card-grid">
-              <div className="mobile-card-field">
-                <span className="mobile-card-label">Total Loans</span>
-                <span className="mobile-card-value">{selectedRow.total_loans}</span>
+            {selectedLoanRows.length === 0 ? (
+              <div className="mobile-record-card">No loans found for this customer.</div>
+            ) : selectedLoanRows.map(loan => (
+              <div className="mobile-record-card" key={loan.loan_id}>
+                <div className="mobile-card-title">
+                  <div>
+                    Loan {loan.loan_id}
+                    <div className="mobile-card-subtitle">{loan.loan_type || '-'}</div>
+                  </div>
+                  <span className="mobile-badge">{loan.loan_result}</span>
+                </div>
+                <div className="mobile-card-grid">
+                  <div className="mobile-card-field">
+                    <span className="mobile-card-label">Issue Date</span>
+                    <span className="mobile-card-value">{formatDate(loan.issue_date)}</span>
+                  </div>
+                  <div className="mobile-card-field">
+                    <span className="mobile-card-label">Maturity Date</span>
+                    <span className="mobile-card-value">{formatDate(loan.maturity_date)}</span>
+                  </div>
+                  <div className="mobile-card-field">
+                    <span className="mobile-card-label">Closing Date</span>
+                    <span className="mobile-card-value">{formatDate(loan.closing_date) || '-'}</span>
+                  </div>
+                  <div className="mobile-card-field">
+                    <span className="mobile-card-label">Issue Amount</span>
+                    <span className="mobile-card-value">{formatAmount(loan.issue_amount)}</span>
+                  </div>
+                  <div className="mobile-card-field">
+                    <span className="mobile-card-label">Collected</span>
+                    <span className="mobile-card-value">{formatAmount(loan.collected_amount)}</span>
+                  </div>
+                  <div className="mobile-card-field">
+                    <span className="mobile-card-label">Balance</span>
+                    <span className="mobile-card-value">{formatAmount(loan.balance_amount)}</span>
+                  </div>
+                </div>
               </div>
-              <div className="mobile-card-field">
-                <span className="mobile-card-label">On/Before</span>
-                <span className="mobile-card-value">{selectedRow.on_time_closures}</span>
-              </div>
-              <div className="mobile-card-field">
-                <span className="mobile-card-label">After Maturity</span>
-                <span className="mobile-card-value">{selectedRow.late_closures}</span>
-              </div>
-              <div className="mobile-card-field">
-                <span className="mobile-card-label">Repayment</span>
-                <span className="mobile-card-value">{formatPercent(selectedRow.repayment_percent)}</span>
-              </div>
-              <div className="mobile-card-field full">
-                <span className="mobile-card-label">Balance</span>
-                <span className="mobile-card-value">{formatAmount(selectedRow.balance_amount)}</span>
-              </div>
-            </div>
-          </div>
+            ))}
+          </>
         )}
       </div>
     </div>
