@@ -54,6 +54,28 @@ function daysBetween(start, end) {
   return Math.round((endDate - startDate) / 86400000);
 }
 
+function addDays(date, days) {
+  const nextDate = new Date(date);
+  nextDate.setUTCDate(nextDate.getUTCDate() + days);
+  return nextDate;
+}
+
+function payableDaysUntilYesterday(issueDate, todayDate = today) {
+  const startDate = parseDate(issueDate);
+  const currentDate = parseDate(todayDate);
+  if (!startDate || !currentDate) return 0;
+
+  const yesterday = addDays(currentDate, -1);
+  if (yesterday < startDate) return 0;
+
+  let payableDays = 0;
+  for (let date = startDate; date <= yesterday; date = addDays(date, 1)) {
+    if (date.getUTCDay() !== 0) payableDays += 1;
+  }
+
+  return payableDays;
+}
+
 function toAmount(value) {
   const amount = Number(value);
   return Number.isFinite(amount) ? amount : 0;
@@ -91,20 +113,24 @@ function getClosingDate(loan) {
   return normalizeDate(loan.closing_date || loan.close_date);
 }
 
-function getLoanResult({ closed, maturityDate, closingDate, balanceAmount }) {
+function getLoanResult({ closed, issueDate, issueAmount, collectedAmount, maturityDate, closingDate }) {
   if (closed) {
     const varianceDays = daysBetween(maturityDate, closingDate);
     if (varianceDays === null) return 'Closed';
     return varianceDays <= 0 ? 'Closed On/Before Maturity' : 'Closed After Maturity';
   }
 
-  if (maturityDate && maturityDate < today && balanceAmount > 0) return 'Active Overdue';
+  const dailyCollectionAmount = issueAmount / 100;
+  const expectedCollectionAmount = Math.min(issueAmount, payableDaysUntilYesterday(issueDate) * dailyCollectionAmount);
+  if (expectedCollectionAmount > 0 && collectedAmount < expectedCollectionAmount) return 'Active Overdue';
+
   return 'Active';
 }
 
 function getAnalysisStatus(row) {
   if (row.total_loans === 0) return 'New Customer';
-  if (row.closed_loans === 0) return row.overdue_active_loans > 0 ? 'Needs Review' : 'Monitor';
+  if (row.overdue_active_loans > 0) return 'Monitor';
+  if (row.closed_loans === 0) return 'Monitor';
   if (row.on_time_closures === row.closed_loans) return 'Good';
   if (row.late_closures === row.closed_loans) return 'Needs Review';
   return 'Monitor';
@@ -252,7 +278,15 @@ const CustomerAnalysisReport = () => {
       const closed = isClosedLoan(loan);
       const closingDate = getClosingDate(loan);
       const maturityDate = normalizeDate(loan.maturity_date);
-      const loanResult = getLoanResult({ closed, maturityDate, closingDate, balanceAmount });
+      const issueDate = normalizeDate(loan.issue_date);
+      const loanResult = getLoanResult({
+        closed,
+        issueDate,
+        issueAmount: issuedAmount,
+        collectedAmount,
+        maturityDate,
+        closingDate,
+      });
 
       row.total_loans += 1;
       row.total_issued += issuedAmount;
@@ -272,7 +306,7 @@ const CustomerAnalysisReport = () => {
       row.loan_history.push({
         loan_id: loan.loan_id,
         loan_type: loan.loan_type || '',
-        issue_date: normalizeDate(loan.issue_date),
+        issue_date: issueDate,
         maturity_date: maturityDate,
         closing_date: closingDate,
         issue_amount: issuedAmount,
