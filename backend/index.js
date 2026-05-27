@@ -1270,10 +1270,37 @@ app.get('/api/customers/:customerId/documents', async (req, res) => {
   }
 });
 
+// GET /api/customers/:customerId/documents/:docType/view
+app.get('/api/customers/:customerId/documents/:docType/view', async (req, res) => {
+  try {
+    const { customerId, docType } = req.params;
+    const result = await pool.query(
+      'SELECT file_path FROM customer_documents WHERE customer_id = $1 AND doc_type = $2',
+      [customerId, docType]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    const relativePath = String(result.rows[0].file_path || '').replace(/^\/+/, '');
+    const absPath = path.resolve(process.cwd(), relativePath);
+    const uploadsRoot = path.resolve(process.cwd(), 'uploads');
+
+    if (!absPath.startsWith(uploadsRoot) || !fs.existsSync(absPath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.sendFile(absPath);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/customers/:customerId/documents/:docType
 app.post('/api/customers/:customerId/documents/:docType', requirePermission('manage_customers'), (req, res) => {
   const { customerId, docType } = req.params;
-  const validTypes = ['customer_adhar', 'guarantor_adhar', 'customer_photo'];
+  const validTypes = ['customer_adhar', 'guarantor_adhar', 'customer_photo', 'tax_receipt'];
   if (!validTypes.includes(docType)) {
     return res.status(400).json({ error: 'Invalid document type' });
   }

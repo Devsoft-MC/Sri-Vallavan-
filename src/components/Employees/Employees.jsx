@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import API_BASE_URL from '../../api';
 
 const columns = [
+	{ label: 'Actions', key: 'actions' },
 	{ label: 'Employee ID', key: 'employee_id' },
 	{ label: 'Name', key: 'employee_name' },
 	{ label: 'Email', key: 'email' },
@@ -12,14 +13,28 @@ const columns = [
 	{ label: 'Login Email', key: 'login_email' },
 	{ label: 'Login Active', key: 'login_active' },
 	{ label: 'Last Login', key: 'last_login_at' },
-	{ label: 'Can Collect', key: 'can_collect' },
-	{ label: 'Can Create Loans', key: 'can_create_loans' },
-	{ label: 'Can Manage Customers', key: 'can_manage_customers' },
-	{ label: 'Password Reset Required', key: 'password_reset_required' },
 	{ label: 'Created At', key: 'created_at' },
 	{ label: 'Updated At', key: 'updated_at' },
-	{ label: 'Actions', key: 'actions' },
 ];
+
+const roleOptions = ['Admin', 'Manager', 'Collection Agent', 'Loan Officer', 'Viewer'];
+const statusOptions = ['Active', 'Inactive'];
+
+const emptyEmployeeForm = {
+	employee_name: '',
+	email: '',
+	mobile_phone: '',
+	designation: '',
+	role: 'Viewer',
+	employment_status: 'Active',
+	can_collect: false,
+	can_create_loans: false,
+	can_manage_customers: false,
+	login_email: '',
+	login_active: true,
+	password_reset_required: true,
+	temporary_password: '',
+};
 
 function formatDate(dateStr) {
 	if (!dateStr) return '';
@@ -49,6 +64,12 @@ const Employees = () => {
 	const [employees, setEmployees] = useState([]);
 	const [filter, setFilter] = useState('');
 	const [loading, setLoading] = useState(true);
+	const [employeeForm, setEmployeeForm] = useState(emptyEmployeeForm);
+	const [editingEmployee, setEditingEmployee] = useState(null);
+	const [showEmployeeModal, setShowEmployeeModal] = useState(false);
+	const [employeeSubmitting, setEmployeeSubmitting] = useState(false);
+	const [employeeError, setEmployeeError] = useState('');
+	const [employeeSuccess, setEmployeeSuccess] = useState('');
 	const [resetEmployee, setResetEmployee] = useState(null);
 	const [newPassword, setNewPassword] = useState('');
 	const [resetError, setResetError] = useState('');
@@ -72,6 +93,111 @@ const Employees = () => {
 	useEffect(() => {
 		loadEmployees();
 	}, []);
+
+	const openNewEmployeeModal = () => {
+		setEditingEmployee(null);
+		setEmployeeForm(emptyEmployeeForm);
+		setEmployeeError('');
+		setEmployeeSuccess('');
+		setShowEmployeeModal(true);
+	};
+
+	const openEditEmployeeModal = (employee) => {
+		setEditingEmployee(employee);
+		setEmployeeForm({
+			employee_name: employee.employee_name || '',
+			email: employee.email || '',
+			mobile_phone: employee.mobile_phone || '',
+			designation: employee.designation || '',
+			role: employee.role || 'Viewer',
+			employment_status: employee.employment_status || 'Active',
+			can_collect: !!employee.can_collect,
+			can_create_loans: !!employee.can_create_loans,
+			can_manage_customers: !!employee.can_manage_customers,
+			login_email: employee.login_email || employee.email || '',
+			login_active: employee.login_active !== false,
+			password_reset_required: !!employee.password_reset_required,
+			temporary_password: '',
+		});
+		setEmployeeError('');
+		setEmployeeSuccess('');
+		setShowEmployeeModal(true);
+	};
+
+	const closeEmployeeModal = () => {
+		if (employeeSubmitting) return;
+		setShowEmployeeModal(false);
+		setEditingEmployee(null);
+		setEmployeeForm(emptyEmployeeForm);
+		setEmployeeError('');
+	};
+
+	const handleEmployeeFieldChange = (event) => {
+		const { name, value, type, checked } = event.target;
+		setEmployeeForm(prev => ({
+			...prev,
+			[name]: type === 'checkbox' ? checked : value,
+			...(name === 'email' && !editingEmployee && !prev.login_email ? { login_email: value } : {}),
+		}));
+		if (employeeError) setEmployeeError('');
+	};
+
+	const handleSaveEmployee = async (event) => {
+		event.preventDefault();
+		setEmployeeError('');
+		setEmployeeSuccess('');
+
+		if (!employeeForm.employee_name.trim() || !employeeForm.email.trim() || !employeeForm.role || !employeeForm.login_email.trim()) {
+			setEmployeeError('Name, email, role and login email are required.');
+			return;
+		}
+
+		if (!editingEmployee && employeeForm.temporary_password && employeeForm.temporary_password.length < 8) {
+			setEmployeeError('Temporary password must be at least 8 characters.');
+			return;
+		}
+
+		const payload = {
+			...employeeForm,
+			employee_name: employeeForm.employee_name.trim(),
+			email: employeeForm.email.trim(),
+			mobile_phone: employeeForm.mobile_phone.trim(),
+			designation: employeeForm.designation.trim(),
+			login_email: employeeForm.login_email.trim().toLowerCase(),
+		};
+
+		if (editingEmployee) {
+			delete payload.temporary_password;
+		}
+
+		setEmployeeSubmitting(true);
+		try {
+			const url = editingEmployee
+				? `${API_BASE_URL}/api/employees-details/${editingEmployee.employee_id}`
+				: `${API_BASE_URL}/api/employees-details`;
+			const res = await fetch(url, {
+				method: editingEmployee ? 'PUT' : 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload),
+			});
+			const data = await res.json().catch(() => ({}));
+
+			if (!res.ok) {
+				setEmployeeError(data.error || 'Unable to save employee.');
+				return;
+			}
+
+			setEmployeeSuccess(editingEmployee ? 'Employee updated.' : `Employee created${data.employee_id ? `: ${data.employee_id}` : ''}.`);
+			setShowEmployeeModal(false);
+			setEditingEmployee(null);
+			setEmployeeForm(emptyEmployeeForm);
+			loadEmployees();
+		} catch {
+			setEmployeeError('Unable to reach the server.');
+		} finally {
+			setEmployeeSubmitting(false);
+		}
+	};
 
 	const openResetModal = (employee) => {
 		setResetEmployee(employee);
@@ -144,6 +270,8 @@ const Employees = () => {
 					style={{ padding: 6, width: 240, marginRight: 8, fontSize: '13px' }}
 				/>
 				<button onClick={loadEmployees} style={{ padding: '6px 18px', fontSize: '13px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4 }}>Refresh</button>
+				<button onClick={openNewEmployeeModal} style={{ padding: '6px 18px', fontSize: '13px', background: '#067647', color: '#fff', border: 'none', borderRadius: 4, marginLeft: 8 }}>New Employee</button>
+				{employeeSuccess && <span style={{ marginLeft: 12, color: '#067647', fontWeight: 600 }}>{employeeSuccess}</span>}
 				{resetSuccess && <span style={{ marginLeft: 12, color: '#067647', fontWeight: 600 }}>{resetSuccess}</span>}
 			</div>
 			<div className="desktop-table-wrap">
@@ -151,7 +279,23 @@ const Employees = () => {
 					<thead>
 						<tr style={{ position: 'sticky', top: 0, background: '#fafbfc', zIndex: 10 }}>
 							{columns.map(col => (
-								<th key={col.key} style={{ borderBottom: '1px solid #ccc', padding: '4px 6px', textAlign: 'left' }}>{col.label}</th>
+								<th
+									key={col.key}
+									style={{
+										borderBottom: '1px solid #ccc',
+										padding: '4px 6px',
+										textAlign: 'left',
+										...(col.key === 'actions' ? {
+											position: 'sticky',
+											left: 0,
+											zIndex: 11,
+											background: '#fafbfc',
+											minWidth: 150,
+										} : {}),
+									}}
+								>
+									{col.label}
+								</th>
 							))}
 						</tr>
 					</thead>
@@ -166,7 +310,36 @@ const Employees = () => {
 									{columns.map(col => {
 										if (col.key === 'actions') {
 											return (
-												<td key={col.key} style={{ padding: '4px 6px', borderBottom: '1px solid #eee' }}>
+												<td
+													key={col.key}
+													style={{
+														padding: '4px 6px',
+														borderBottom: '1px solid #eee',
+														position: 'sticky',
+														left: 0,
+														zIndex: 2,
+														background: '#fafbfc',
+														minWidth: 150,
+														whiteSpace: 'nowrap',
+													}}
+												>
+													<button
+														type="button"
+														onClick={() => openEditEmployeeModal(emp)}
+														disabled={!emp.employee_id}
+														style={{
+															padding: '5px 10px',
+															fontSize: '12px',
+															background: '#1976d2',
+															color: '#fff',
+															border: '1px solid #1976d2',
+															borderRadius: 4,
+															cursor: emp.employee_id ? 'pointer' : 'not-allowed',
+															marginRight: 8,
+														}}
+													>
+														Edit
+													</button>
 													<button
 														type="button"
 														onClick={() => openResetModal(emp)}
@@ -236,12 +409,16 @@ const Employees = () => {
 								<span className="mobile-card-label">Login Active</span>
 								<span className="mobile-card-value">{typeof emp.login_active === 'boolean' ? (emp.login_active ? 'Yes' : 'No') : ''}</span>
 							</div>
-							<div className="mobile-card-field">
-								<span className="mobile-card-label">Can Collect</span>
-								<span className="mobile-card-value">{typeof emp.can_collect === 'boolean' ? (emp.can_collect ? 'Yes' : 'No') : ''}</span>
-							</div>
 						</div>
 						<div className="mobile-card-actions">
+							<button
+								type="button"
+								onClick={() => openEditEmployeeModal(emp)}
+								disabled={!emp.employee_id}
+								style={{ padding: '7px 12px', fontSize: '12px', background: '#1976d2', color: '#fff', border: '1px solid #1976d2', borderRadius: 4, marginRight: 8 }}
+							>
+								Edit
+							</button>
 							<button
 								type="button"
 								onClick={() => openResetModal(emp)}
@@ -254,6 +431,118 @@ const Employees = () => {
 					</div>
 				))}
 			</div>
+			{showEmployeeModal && (
+				<div
+					style={{
+						position: 'fixed',
+						inset: 0,
+						background: 'rgba(15, 23, 42, 0.35)',
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						zIndex: 1000,
+						padding: 16,
+					}}
+				>
+					<form
+						className="mobile-modal-panel"
+						onSubmit={handleSaveEmployee}
+						style={{
+							width: 'min(100%, 680px)',
+							maxHeight: '84vh',
+							overflowY: 'auto',
+							background: '#fff',
+							borderRadius: 8,
+							padding: 18,
+							boxShadow: '0 20px 48px rgba(15, 23, 42, 0.18)',
+						}}
+					>
+						<h3 style={{ margin: '0 0 12px', color: '#1f2937' }}>
+							{editingEmployee ? `Edit Employee ${editingEmployee.employee_id}` : 'New Employee'}
+						</h3>
+						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 }}>
+							<label style={{ display: 'grid', gap: 6, fontWeight: 600 }}>
+								Name
+								<input name="employee_name" value={employeeForm.employee_name} onChange={handleEmployeeFieldChange} required style={{ height: 34, padding: '0 9px', border: '1px solid #cfd8e3', borderRadius: 4, boxSizing: 'border-box' }} />
+							</label>
+							<label style={{ display: 'grid', gap: 6, fontWeight: 600 }}>
+								Email
+								<input name="email" type="email" value={employeeForm.email} onChange={handleEmployeeFieldChange} required style={{ height: 34, padding: '0 9px', border: '1px solid #cfd8e3', borderRadius: 4, boxSizing: 'border-box' }} />
+							</label>
+							<label style={{ display: 'grid', gap: 6, fontWeight: 600 }}>
+								Mobile Phone
+								<input name="mobile_phone" value={employeeForm.mobile_phone} onChange={handleEmployeeFieldChange} style={{ height: 34, padding: '0 9px', border: '1px solid #cfd8e3', borderRadius: 4, boxSizing: 'border-box' }} />
+							</label>
+							<label style={{ display: 'grid', gap: 6, fontWeight: 600 }}>
+								Designation
+								<input name="designation" value={employeeForm.designation} onChange={handleEmployeeFieldChange} style={{ height: 34, padding: '0 9px', border: '1px solid #cfd8e3', borderRadius: 4, boxSizing: 'border-box' }} />
+							</label>
+							<label style={{ display: 'grid', gap: 6, fontWeight: 600 }}>
+								Role
+								<select name="role" value={employeeForm.role} onChange={handleEmployeeFieldChange} required style={{ height: 34, padding: '0 9px', border: '1px solid #cfd8e3', borderRadius: 4, boxSizing: 'border-box' }}>
+									{roleOptions.map(role => <option key={role} value={role}>{role}</option>)}
+								</select>
+							</label>
+							<label style={{ display: 'grid', gap: 6, fontWeight: 600 }}>
+								Status
+								<select name="employment_status" value={employeeForm.employment_status} onChange={handleEmployeeFieldChange} style={{ height: 34, padding: '0 9px', border: '1px solid #cfd8e3', borderRadius: 4, boxSizing: 'border-box' }}>
+									{statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
+								</select>
+							</label>
+							<label style={{ display: 'grid', gap: 6, fontWeight: 600 }}>
+								Login Email
+								<input name="login_email" type="email" value={employeeForm.login_email} onChange={handleEmployeeFieldChange} required style={{ height: 34, padding: '0 9px', border: '1px solid #cfd8e3', borderRadius: 4, boxSizing: 'border-box' }} />
+							</label>
+							{!editingEmployee && (
+								<label style={{ display: 'grid', gap: 6, fontWeight: 600 }}>
+									Temporary Password
+									<input name="temporary_password" type="password" value={employeeForm.temporary_password} onChange={handleEmployeeFieldChange} placeholder="Default if blank" style={{ height: 34, padding: '0 9px', border: '1px solid #cfd8e3', borderRadius: 4, boxSizing: 'border-box' }} />
+								</label>
+							)}
+						</div>
+						<div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 14, fontSize: '13px' }}>
+							<label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+								<input name="can_collect" type="checkbox" checked={employeeForm.can_collect} onChange={handleEmployeeFieldChange} />
+								Can Collect
+							</label>
+							<label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+								<input name="can_create_loans" type="checkbox" checked={employeeForm.can_create_loans} onChange={handleEmployeeFieldChange} />
+								Can Create Loans
+							</label>
+							<label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+								<input name="can_manage_customers" type="checkbox" checked={employeeForm.can_manage_customers} onChange={handleEmployeeFieldChange} />
+								Can Manage Customers
+							</label>
+							<label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+								<input name="login_active" type="checkbox" checked={employeeForm.login_active} onChange={handleEmployeeFieldChange} />
+								Login Active
+							</label>
+							<label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+								<input name="password_reset_required" type="checkbox" checked={employeeForm.password_reset_required} onChange={handleEmployeeFieldChange} />
+								Password Reset Required
+							</label>
+						</div>
+						{employeeError && <p style={{ margin: '14px 0 0', color: '#b42318' }}>{employeeError}</p>}
+						<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16, paddingTop: 12, borderTop: '1px solid #eef2f6', position: 'sticky', bottom: -18, background: '#fff' }}>
+							<button
+								type="button"
+								onClick={closeEmployeeModal}
+								disabled={employeeSubmitting}
+								style={{ padding: '8px 14px', border: '1px solid #cfd8e3', background: '#fff', borderRadius: 4, cursor: 'pointer' }}
+							>
+								Cancel
+							</button>
+							<button
+								type="submit"
+								disabled={employeeSubmitting}
+								style={{ padding: '8px 14px', border: 'none', background: '#1976d2', color: '#fff', borderRadius: 4, cursor: 'pointer' }}
+							>
+								{employeeSubmitting ? 'Saving...' : 'Save Employee'}
+							</button>
+						</div>
+					</form>
+				</div>
+			)}
 			{resetEmployee && (
 				<div
 					style={{

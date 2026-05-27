@@ -5,6 +5,7 @@ import API_BASE_URL from '../../api';
 
 const lineOptions = {
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: {
       position: 'bottom',

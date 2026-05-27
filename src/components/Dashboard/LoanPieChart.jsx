@@ -6,6 +6,7 @@ import './chartjs-setup';
 import API_BASE_URL from '../../api';
 
 const pieOptions = {
+  maintainAspectRatio: false,
   plugins: {
     datalabels: {
       color: '#222',
@@ -19,23 +20,7 @@ const pieOptions = {
       },
     },
     legend: {
-      position: 'bottom',
-      labels: {
-        generateLabels: (chart) => {
-          const data = chart.data;
-          if (!data.labels || !data.datasets.length) return [];
-          return data.labels.map((label, i) => {
-            const value = data.datasets[0].data[i];
-            const backgroundColor = data.datasets[0].backgroundColor[i];
-            return {
-              text: `${label} (${value})`,
-              fillStyle: backgroundColor,
-              strokeStyle: backgroundColor,
-              index: i,
-            };
-          });
-        },
-      },
+      display: false,
     },
   },
 };
@@ -76,7 +61,20 @@ const LoanPieChart = () => {
   return (
     <div className="dashboard-chart-card">
       <h2>Loan Categories</h2>
-      <Pie data={chartData} options={pieOptions} plugins={['datalabels']} />
+      <div className="dashboard-pie-chart">
+        <Pie data={chartData} options={pieOptions} plugins={['datalabels']} />
+      </div>
+      <div className="dashboard-chart-legend" aria-label="Loan category chart legend">
+        {chartData.labels.map((label, index) => (
+          <span className="dashboard-chart-legend-item" key={label}>
+            <span
+              className="dashboard-chart-legend-swatch"
+              style={{ backgroundColor: chartData.datasets[0].backgroundColor[index] }}
+            />
+            {label} ({chartData.datasets[0].data[index]})
+          </span>
+        ))}
+      </div>
     </div>
   );
 };
