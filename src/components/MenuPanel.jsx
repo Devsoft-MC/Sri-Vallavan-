@@ -28,6 +28,10 @@ const MenuPanel = ({ selected, setSelected, onLogout }) => {
 
   return (
     <div className="menu-panel">
+      <div className="menu-brand" aria-label="Sri Vallavan">
+        <span className="menu-brand-mark">SV</span>
+        <span className="menu-brand-name">Sri Vallavan</span>
+      </div>
       <ul className="menu-list">
         {visibleMainItems.map(item => {
           if (item === 'Reports') {

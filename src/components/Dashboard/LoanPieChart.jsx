@@ -9,7 +9,7 @@ const pieOptions = {
   maintainAspectRatio: false,
   plugins: {
     datalabels: {
-      color: '#222',
+      color: '#102033',
       font: { weight: 'bold', size: 16 },
       rotation: 270, // vertical orientation
       formatter: (value, context) => {
@@ -33,11 +33,11 @@ const LoanPieChart = () => {
       .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then(data => {
         const colorMap = {
-          'Personal Loan': '#d32f2f',
-          'Gold Loan': '#1976d2',
-          'Vehicle Loan': '#43a047',
+          'Personal Loan': '#c24132',
+          'Gold Loan': '#1978ad',
+          'Vehicle Loan': '#067647',
         };
-        const defaultColors = ['#e67e22', '#fbc02d', '#7b1fa2'];
+        const defaultColors = ['#0397c9', '#d49a1e', '#6d79c8'];
         if (!data || !Array.isArray(data.types) || !Array.isArray(data.counts)) {
           setChartData(null);
           return;

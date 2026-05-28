@@ -9,7 +9,7 @@ const pieOptions = {
   maintainAspectRatio: false,
   plugins: {
     datalabels: {
-      color: '#222',
+      color: '#102033',
       font: { weight: 'bold', size: 16 },
       rotation: 270,
       formatter: (value, context) => {
@@ -202,10 +202,10 @@ const CustomerCategoryPieChart = () => {
         const labels = statusOrder.filter(status => countsByStatus[status] > 0);
         const counts = labels.map(status => countsByStatus[status]);
         const colorMap = {
-          Good: '#43a047',
-          Monitor: '#f9a825',
-          'Needs Review': '#d32f2f',
-          'New Customer': '#90a4ae',
+          Good: '#067647',
+          Monitor: '#d49a1e',
+          'Needs Review': '#c24132',
+          'New Customer': '#8aa9bd',
         };
 
         if (labels.length === 0) {

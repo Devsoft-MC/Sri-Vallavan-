@@ -9,16 +9,37 @@ const lineOptions = {
   plugins: {
     legend: {
       position: 'bottom',
+      labels: {
+        color: '#2c638f',
+        boxWidth: 14,
+      },
     },
     title: {
       display: true,
       text: 'Total Loans Issued Amount (Last 6 Months)',
+      color: '#102033',
+      font: {
+        size: 15,
+        weight: '700',
+      },
     },
   },
   scales: {
+    x: {
+      grid: {
+        color: 'rgba(44, 99, 143, 0.12)',
+      },
+      ticks: {
+        color: '#2c638f',
+      },
+    },
     y: {
       min: 100000,
+      grid: {
+        color: 'rgba(44, 99, 143, 0.12)',
+      },
       ticks: {
+        color: '#2c638f',
         callback: value => Number(value).toLocaleString(),
       },
     },
@@ -42,8 +63,11 @@ const LoanIssuedLineChart = () => {
             {
               label: 'Total Issued Amount',
               data: data.amounts,
-              borderColor: '#1976d2',
-              backgroundColor: 'rgba(25, 118, 210, 0.2)',
+              borderColor: '#1978ad',
+              backgroundColor: 'rgba(25, 120, 173, 0.18)',
+              pointBackgroundColor: '#0397c9',
+              pointBorderColor: '#f5fbff',
+              pointHoverRadius: 5,
               tension: 0.3,
               fill: true,
             },
