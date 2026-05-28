@@ -482,12 +482,12 @@ const Customers = () => {
 							sortedCustomers.map((cust, idx) => (
 								<tr
 									key={idx}
+									className={selectedCustomer?.customer_id === cust.customer_id ? 'selected-record-row' : undefined}
 									onClick={() => setSelectedCustomer(cust)}
 									onDoubleClick={() => { setSelectedCustomer(cust); setShowEdit(true); }}
 									style={{
 										transition: 'background 0.2s',
 										cursor: 'pointer',
-										background: selectedCustomer?.customer_id === cust.customer_id ? '#e8f2ff' : undefined,
 									}}
 								>
 									{/* Sl.No */}

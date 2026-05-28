@@ -551,9 +551,9 @@ const Loans = () => {
 							filteredLoans.map((loan, idx) => (
 								<tr
 									key={loan.loan_id || idx}
+									className={selectedLoan?.loan_id === loan.loan_id ? 'selected-record-row' : undefined}
 									onClick={() => setSelectedLoan(isOpenLoan(loan) ? loan : null)}
 									style={{
-										background: selectedLoan?.loan_id === loan.loan_id ? '#e6f0ff' : undefined,
 										cursor: isOpenLoan(loan) ? 'pointer' : 'not-allowed',
 										opacity: isOpenLoan(loan) ? 1 : 0.65,
 									}}

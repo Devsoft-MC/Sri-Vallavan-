@@ -502,7 +502,7 @@ const CustomerAnalysisReport = () => {
             ) : !selectedRow ? (
               <tr><td colSpan={summaryColumns.length} style={{ padding: 12 }}>No customer selected.</td></tr>
             ) : selectedRows.map(row => (
-              <tr key={row.customer_id}>
+              <tr key={row.customer_id} className="selected-record-row">
                 {summaryColumns.map(column => (
                   <td key={column.key} style={{ padding: '6px', borderBottom: '1px solid #eee', textAlign: column.numeric ? 'right' : 'left' }}>
                     {formatCell(row, column)}
@@ -552,7 +552,7 @@ const CustomerAnalysisReport = () => {
           <div className="mobile-record-card">No customer selected.</div>
         ) : (
           <>
-            <div className="mobile-record-card" key={selectedRow.customer_id}>
+            <div className="mobile-record-card selected" key={selectedRow.customer_id}>
               <div className="mobile-card-title">
                 <div>
                   {selectedRow.customer_name || 'Customer'}

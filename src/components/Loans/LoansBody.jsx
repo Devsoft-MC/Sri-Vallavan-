@@ -62,8 +62,9 @@ const LoansBody = ({ loans, loading, error, sortKey, sortOrder, onSort, onRowCli
               loans.map((row, idx) => (
                 <tr
                   key={row.loan_id || idx}
+                  className={selectedLoan && selectedLoan.loan_id === row.loan_id ? 'selected-record-row' : undefined}
                   onClick={() => onRowClick && onRowClick(row)}
-                  style={{ cursor: 'pointer', background: selectedLoan && selectedLoan.loan_id === row.loan_id ? '#ffeaea' : undefined }}
+                  style={{ cursor: 'pointer' }}
                 >
                   {columns.map(col => {
                     let value = row[col.key];

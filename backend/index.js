@@ -133,6 +133,8 @@ import { deleteCollectionEndpoint } from './routes/deleteCollection.js';
 import { loansListEndpoint } from './routes/loansList.js';
 import { loanTypesEndpoint } from './routes/loanTypes.js';
 import { updateLoanStatusEndpoint } from './routes/updateLoanStatus.js';
+import { loanIncomeEndpoint } from './routes/loanIncome.js';
+import { expensesEndpoint } from './routes/expenses.js';
 // Register the addCollection, editCollection, and deleteCollection endpoints after app and pool are initialized
 addCollectionEndpoint(app, pool, requirePermission('collect'));
 addLoanEndpoint(app, pool, requirePermission('create_loans'));
@@ -141,6 +143,8 @@ deleteCollectionEndpoint(app, pool, requirePermission('collect'));
 loansListEndpoint(app, pool);
 loanTypesEndpoint(app, pool);
 updateLoanStatusEndpoint(app, pool, requirePermission('create_loans'));
+loanIncomeEndpoint(app, pool, requirePermission('collect'), requireRole('Admin'));
+expensesEndpoint(app, pool, requireRole('Admin'), requireRole('Admin', 'Manager'));
 
 app.get('/api/loans-by-type', async (req, res) => {
   try {

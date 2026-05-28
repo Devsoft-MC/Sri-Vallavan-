@@ -371,8 +371,9 @@ const CollectionDetailsReport = () => {
               return (
                 <tr
                   key={row.loan_id}
+                  className={isSelected ? 'selected-record-row' : undefined}
                   onClick={() => setSelectedLoanId(String(row.loan_id || ''))}
-                  style={{ background: isSelected ? '#eaf3ff' : '#fff', cursor: 'pointer' }}
+                  style={{ cursor: 'pointer' }}
                 >
                   {loanColumns.map(column => (
                     <td key={column.key} style={{ padding: '6px', borderBottom: '1px solid #eee', textAlign: column.numeric ? 'right' : 'left' }}>
@@ -444,10 +445,10 @@ const CollectionDetailsReport = () => {
 
           return (
             <div
-              className="mobile-record-card"
+              className={`mobile-record-card ${isSelected ? 'selected' : ''}`}
               key={loan.loan_id}
               onClick={() => setSelectedLoanId(String(loan.loan_id || ''))}
-              style={{ borderColor: isSelected ? '#1f7bd8' : undefined, background: isSelected ? '#f5faff' : undefined, cursor: 'pointer' }}
+              style={{ cursor: 'pointer' }}
             >
               <div className="mobile-card-title">
                 <div>

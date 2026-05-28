@@ -653,9 +653,9 @@ const Collections = () => {
 									{filteredData.map((row, idx) => (
 											<tr
 													key={idx}
+													className={selectedRow && selectedRow.collection_id === row.collection_id ? 'selected-record-row' : undefined}
 													onClick={() => setSelectedRow(row)}
 													style={{
-															background: selectedRow && selectedRow.collection_id === row.collection_id ? '#e6f0ff' : '',
 															cursor: 'pointer',
 													}}
 											>

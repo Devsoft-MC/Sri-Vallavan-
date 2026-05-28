@@ -3,8 +3,11 @@ import MenuPanel from './components/MenuPanel';
 import Dashboard from './components/Dashboard/Dashboard';
 import Collections from './components/Collections/Collections';
 import Loans from './components/Loans/Loans';
+import LoanIncome from './components/Accounts/LoanIncome';
+import Expenses from './components/Accounts/Expenses';
 import Customers from './components/Customers/Customers';
 import Employees from './components/Employees/Employees';
+import Settings from './components/Settings/Settings';
 import ActiveLoanPositionReport from './components/Reports/ActiveLoanPositionReport';
 import CustomerAnalysisReport from './components/Reports/CustomerAnalysisReport';
 import CollectionDetailsReport from './components/Reports/CollectionDetailsReport';
@@ -62,8 +65,11 @@ const App = () => {
         {canAccessSelected && selected === 'Dashboard' && <Dashboard />}
         {canAccessSelected && selected === 'Collections' && <Collections />}
         {canAccessSelected && selected === 'Loans' && <Loans />}
+        {canAccessSelected && selected === 'Loan Income' && <LoanIncome />}
+        {canAccessSelected && selected === 'Expenses' && <Expenses />}
         {canAccessSelected && selected === 'Customers' && <Customers />}
         {canAccessSelected && selected === 'Employees' && <Employees />}
+        {canAccessSelected && selected === 'Settings' && <Settings />}
         {canAccessSelected && selected === 'Reports' && (
           <div style={{ padding: 32 }}>
             <h2 style={{ color: 'navy', margin: '0 0 12px' }}>Reports</h2>
