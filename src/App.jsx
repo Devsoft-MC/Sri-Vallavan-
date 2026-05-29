@@ -12,6 +12,7 @@ import ActiveLoanPositionReport from './components/Reports/ActiveLoanPositionRep
 import CustomerAnalysisReport from './components/Reports/CustomerAnalysisReport';
 import CollectionDetailsReport from './components/Reports/CollectionDetailsReport';
 import CustomerStatusReport from './components/Reports/CustomerStatusReport';
+import InterestReceivedReport from './components/Reports/InterestReceivedReport';
 import Login from './components/Login';
 import { clearAuth, getStoredAuth, installAuthFetch } from './auth';
 import { canAccessSection, getCurrentEmployee, getDefaultSection } from './permissions';
@@ -77,6 +78,7 @@ const App = () => {
           </div>
         )}
         {canAccessSelected && selected === 'Loan Report' && <ActiveLoanPositionReport />}
+        {canAccessSelected && selected === 'Interest Received' && <InterestReceivedReport />}
         {canAccessSelected && selected === 'Customer Analysis' && <CustomerAnalysisReport />}
         {canAccessSelected && selected === 'Collection Details' && <CollectionDetailsReport />}
         {canAccessSelected && selected === 'Customer Status' && <CustomerStatusReport />}

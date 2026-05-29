@@ -12,6 +12,7 @@ const roleAccess = {
   Settings: ['Admin'],
   Reports: ['Admin', 'Manager', 'Viewer', 'Loan Officer', 'Collection Agent'],
   'Loan Report': ['Admin', 'Manager', 'Viewer', 'Loan Officer'],
+  'Interest Received': ['Admin', 'Manager', 'Viewer', 'Loan Officer'],
   'Customer Analysis': ['Admin', 'Manager', 'Viewer'],
   'Collection Details': ['Admin', 'Manager', 'Viewer', 'Loan Officer', 'Collection Agent'],
   'Customer Status': ['Admin', 'Manager', 'Viewer'],
