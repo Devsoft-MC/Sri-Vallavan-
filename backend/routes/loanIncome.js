@@ -140,7 +140,6 @@ export function loanIncomeEndpoint(
       }
 
       const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
-      const limitClause = loan_id || customer_id || income_type_id || from || to || text ? '' : 'LIMIT 200';
       const result = await pool.query(
         `SELECT
            li.loan_income_id,
@@ -161,8 +160,7 @@ export function loanIncomeEndpoint(
          LEFT JOIN loans l ON l.loan_id = li.loan_id
          LEFT JOIN customers c ON c.customer_id = li.customer_id
          ${whereClause}
-         ORDER BY li.income_date DESC, li.loan_income_id DESC
-         ${limitClause}`,
+         ORDER BY li.income_date DESC, li.loan_income_id DESC`,
         params
       );
       res.json(result.rows);
