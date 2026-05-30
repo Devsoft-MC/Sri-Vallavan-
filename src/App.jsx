@@ -13,6 +13,7 @@ import CustomerAnalysisReport from './components/Reports/CustomerAnalysisReport'
 import CollectionDetailsReport from './components/Reports/CollectionDetailsReport';
 import CustomerStatusReport from './components/Reports/CustomerStatusReport';
 import InterestReceivedReport from './components/Reports/InterestReceivedReport';
+import MonthlyStatusReport from './components/Reports/MonthlyStatusReport';
 import Login from './components/Login';
 import { clearAuth, getStoredAuth, installAuthFetch } from './auth';
 import { canAccessSection, getCurrentEmployee, getDefaultSection } from './permissions';
@@ -66,8 +67,8 @@ const App = () => {
         {canAccessSelected && selected === 'Dashboard' && <Dashboard />}
         {canAccessSelected && selected === 'Collections' && <Collections />}
         {canAccessSelected && selected === 'Loans' && <Loans />}
-        {canAccessSelected && selected === 'Loan Income' && <LoanIncome />}
-        {canAccessSelected && selected === 'Expenses' && <Expenses />}
+        {canAccessSelected && selected === 'Receipts' && <LoanIncome />}
+        {canAccessSelected && selected === 'Payments' && <Expenses />}
         {canAccessSelected && selected === 'Customers' && <Customers />}
         {canAccessSelected && selected === 'Employees' && <Employees />}
         {canAccessSelected && selected === 'Settings' && <Settings />}
@@ -78,6 +79,7 @@ const App = () => {
           </div>
         )}
         {canAccessSelected && selected === 'Loan Report' && <ActiveLoanPositionReport />}
+        {canAccessSelected && selected === 'Monthly Status' && <MonthlyStatusReport />}
         {canAccessSelected && selected === 'Interest Received' && <InterestReceivedReport />}
         {canAccessSelected && selected === 'Customer Analysis' && <CustomerAnalysisReport />}
         {canAccessSelected && selected === 'Collection Details' && <CollectionDetailsReport />}

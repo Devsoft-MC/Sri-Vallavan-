@@ -10,7 +10,7 @@ const toPositiveAmount = (value) => {
 
 const verifyExpenseType = async (client, expenseTypeId) => {
   const result = await client.query(
-    `SELECT expense_type_id, expense_type_name
+    `SELECT expense_type_id, expense_type_name, COALESCE(affects_profit, true) AS affects_profit
      FROM expense_types
      WHERE expense_type_id = $1 AND COALESCE(is_active, true) = true`,
     [expenseTypeId]
@@ -27,7 +27,7 @@ export function expensesEndpoint(
   app.get('/api/expense-types', async (req, res) => {
     try {
       const result = await pool.query(
-        `SELECT expense_type_id, expense_type_name, is_active
+        `SELECT expense_type_id, expense_type_name, is_active, COALESCE(affects_profit, true) AS affects_profit
          FROM expense_types
          ORDER BY expense_type_name`
       );
@@ -39,18 +39,19 @@ export function expensesEndpoint(
 
   app.post('/api/expense-types', requireAdmin, async (req, res) => {
     const expenseTypeName = normalizeText(req.body.expense_type_name);
+    const affectsProfit = req.body.affects_profit !== false;
     if (!expenseTypeName) {
       return res.status(400).json({ error: 'Expense type name is required' });
     }
 
     try {
       const result = await pool.query(
-        `INSERT INTO expense_types (expense_type_name)
-         VALUES ($1)
+        `INSERT INTO expense_types (expense_type_name, affects_profit)
+         VALUES ($1, $2)
          ON CONFLICT (expense_type_name)
-         DO UPDATE SET is_active = true
-         RETURNING expense_type_id, expense_type_name, is_active`,
-        [expenseTypeName]
+         DO UPDATE SET is_active = true, affects_profit = EXCLUDED.affects_profit
+         RETURNING expense_type_id, expense_type_name, is_active, COALESCE(affects_profit, true) AS affects_profit`,
+        [expenseTypeName, affectsProfit]
       );
       res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -62,6 +63,7 @@ export function expensesEndpoint(
     const { expense_type_id } = req.params;
     const expenseTypeName = normalizeText(req.body.expense_type_name);
     const isActive = req.body.is_active;
+    const affectsProfit = req.body.affects_profit;
 
     if (!expenseTypeName) {
       return res.status(400).json({ error: 'Expense type name is required' });
@@ -71,10 +73,16 @@ export function expensesEndpoint(
       const result = await pool.query(
         `UPDATE expense_types
          SET expense_type_name = $1,
-             is_active = COALESCE($2, is_active)
-         WHERE expense_type_id = $3
-         RETURNING expense_type_id, expense_type_name, is_active`,
-        [expenseTypeName, typeof isActive === 'boolean' ? isActive : null, expense_type_id]
+             is_active = COALESCE($2, is_active),
+             affects_profit = COALESCE($3, affects_profit)
+         WHERE expense_type_id = $4
+         RETURNING expense_type_id, expense_type_name, is_active, COALESCE(affects_profit, true) AS affects_profit`,
+        [
+          expenseTypeName,
+          typeof isActive === 'boolean' ? isActive : null,
+          typeof affectsProfit === 'boolean' ? affectsProfit : null,
+          expense_type_id,
+        ]
       );
 
       if (!result.rows.length) {

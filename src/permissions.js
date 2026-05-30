@@ -4,14 +4,15 @@ const roleAccess = {
   Dashboard: ['Admin', 'Manager', 'Viewer'],
   Collections: ['Admin', 'Manager', 'Collection Agent'],
   Loans: ['Admin', 'Manager', 'Loan Officer'],
-  'Loan Income': ['Admin', 'Manager', 'Loan Officer', 'Collection Agent'],
-  Expenses: ['Admin', 'Manager'],
+  Receipts: ['Admin', 'Manager', 'Loan Officer', 'Collection Agent'],
+  Payments: ['Admin', 'Manager'],
   Customers: ['Admin', 'Manager', 'Loan Officer'],
   Employees: ['Admin'],
   Transactions: ['Admin', 'Manager', 'Loan Officer', 'Collection Agent'],
   Settings: ['Admin'],
   Reports: ['Admin', 'Manager', 'Viewer', 'Loan Officer', 'Collection Agent'],
   'Loan Report': ['Admin', 'Manager', 'Viewer', 'Loan Officer'],
+  'Monthly Status': ['Admin', 'Manager', 'Viewer'],
   'Interest Received': ['Admin', 'Manager', 'Viewer', 'Loan Officer', 'Collection Agent'],
   'Customer Analysis': ['Admin', 'Manager', 'Viewer'],
   'Collection Details': ['Admin', 'Manager', 'Viewer', 'Loan Officer', 'Collection Agent'],
@@ -34,7 +35,7 @@ export function canAccessSection(section, employee = getCurrentEmployee()) {
 
   if (section === 'Collections' && employee.can_collect) return true;
   if (section === 'Loans' && employee.can_create_loans) return true;
-  if (section === 'Loan Income' && (employee.can_collect || employee.can_create_loans)) return true;
+  if (section === 'Receipts' && (employee.can_collect || employee.can_create_loans)) return true;
   if (section === 'Customers' && employee.can_manage_customers) return true;
 
   return false;

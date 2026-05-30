@@ -3,8 +3,8 @@ import './HomePage.css';
 import { canAccessSection, getCurrentEmployee } from '../permissions';
 
 const mainItems = ['Dashboard', 'Collections', 'Loans', 'Customers', 'Employees', 'Transactions', 'Reports', 'Settings'];
-const transactionItems = ['Loan Income', 'Expenses'];
-const reportItems = ['Loan Report', 'Interest Received', 'Customer Analysis', 'Collection Details', 'Customer Status'];
+const transactionItems = ['Receipts', 'Payments'];
+const reportItems = ['Loan Report', 'Monthly Status', 'Interest Received', 'Customer Analysis', 'Collection Details', 'Customer Status'];
 
 const MenuPanel = ({ selected, setSelected, onLogout }) => {
   const [reportsOpen, setReportsOpen] = useState(false);

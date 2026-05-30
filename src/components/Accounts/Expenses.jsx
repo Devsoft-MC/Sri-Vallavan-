@@ -85,13 +85,13 @@ const Expenses = () => {
       ]);
 
       if (!typesRes.ok || !expensesRes.ok) {
-        throw new Error(typeData.error || expenseData.error || 'Unable to load expenses.');
+        throw new Error(typeData.error || expenseData.error || 'Unable to load payments.');
       }
 
       setExpenseTypes(Array.isArray(typeData) ? typeData : []);
       setEntries(Array.isArray(expenseData) ? expenseData : []);
     } catch (err) {
-      setError(err.message || 'Unable to load expenses.');
+      setError(err.message || 'Unable to load payments.');
     } finally {
       setLoading(false);
     }
@@ -143,14 +143,14 @@ const Expenses = () => {
         body: JSON.stringify(form),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Unable to save expense.');
+      if (!res.ok) throw new Error(data.error || 'Unable to save payment.');
 
-      setSuccess(selectedEntry ? 'Expense updated.' : 'Expense saved.');
+      setSuccess(selectedEntry ? 'Payment updated.' : 'Payment saved.');
       resetForm();
       await loadData();
       setTimeout(() => setSuccess(''), 3500);
     } catch (err) {
-      setError(err.message || 'Unable to save expense.');
+      setError(err.message || 'Unable to save payment.');
     } finally {
       setSaving(false);
     }
@@ -158,7 +158,7 @@ const Expenses = () => {
 
   const handleDelete = async () => {
     if (!selectedEntry) return;
-    if (!window.confirm(`Delete expense ${selectedEntry.expense_id}?`)) return;
+    if (!window.confirm(`Delete payment ${selectedEntry.expense_id}?`)) return;
 
     setSaving(true);
     setError('');
@@ -168,14 +168,14 @@ const Expenses = () => {
         method: 'DELETE',
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Unable to delete expense.');
+      if (!res.ok) throw new Error(data.error || 'Unable to delete payment.');
 
-      setSuccess('Expense deleted.');
+      setSuccess('Payment deleted.');
       resetForm();
       await loadData();
       setTimeout(() => setSuccess(''), 3500);
     } catch (err) {
-      setError(err.message || 'Unable to delete expense.');
+      setError(err.message || 'Unable to delete payment.');
     } finally {
       setSaving(false);
     }
@@ -183,7 +183,7 @@ const Expenses = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2 style={{ color: 'navy', margin: '0 0 18px' }}>Expenses</h2>
+      <h2 style={{ color: 'navy', margin: '0 0 18px' }}>Payments</h2>
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, alignItems: 'end', marginBottom: 16 }}>
         <label style={{ fontSize: 13, color: '#444' }}>
@@ -191,7 +191,7 @@ const Expenses = () => {
           <input name="expense_date" type="date" value={form.expense_date} onChange={handleChange} required style={{ display: 'block', marginTop: 4, padding: 7, width: '100%', fontSize: 13 }} />
         </label>
         <label style={{ fontSize: 13, color: '#444' }}>
-          Expense Type
+          Payment Type
           <select name="expense_type_id" value={form.expense_type_id} onChange={handleChange} required style={{ display: 'block', marginTop: 4, padding: 7, width: '100%', fontSize: 13 }}>
             <option value="">Select type</option>
             {activeExpenseTypes.map(type => (
@@ -224,7 +224,7 @@ const Expenses = () => {
         </label>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <button type="submit" disabled={saving} style={{ padding: '8px 16px', fontSize: 13, border: 'none', borderRadius: 4, background: saving ? '#98a2b3' : '#1976d2', color: '#fff', cursor: saving ? 'not-allowed' : 'pointer' }}>
-            {saving ? 'Saving...' : selectedEntry ? 'Update' : 'Save Expense'}
+            {saving ? 'Saving...' : selectedEntry ? 'Update' : 'Save Payment'}
           </button>
           <button type="button" onClick={resetForm} style={{ padding: '8px 16px', fontSize: 13, border: '1px solid #cfd6e2', borderRadius: 4, background: '#fff', color: '#344054', cursor: 'pointer' }}>New</button>
           <button type="button" onClick={handleDelete} disabled={saving || !selectedEntry} style={{ padding: '8px 16px', fontSize: 13, border: '1px solid #b42318', borderRadius: 4, background: saving || !selectedEntry ? '#f2f4f7' : '#d92d20', color: saving || !selectedEntry ? '#98a2b3' : '#fff', cursor: saving || !selectedEntry ? 'not-allowed' : 'pointer' }}>Delete</button>
@@ -263,7 +263,7 @@ const Expenses = () => {
             {loading ? (
               <tr><td colSpan={7} style={{ padding: 12 }}>Loading...</td></tr>
             ) : filteredEntries.length === 0 ? (
-              <tr><td colSpan={7} style={{ padding: 12 }}>No expenses found.</td></tr>
+              <tr><td colSpan={7} style={{ padding: 12 }}>No payments found.</td></tr>
             ) : filteredEntries.map(entry => (
               <tr
                 key={entry.expense_id}
@@ -288,7 +288,7 @@ const Expenses = () => {
         {loading ? (
           <div className="mobile-record-card">Loading...</div>
         ) : filteredEntries.length === 0 ? (
-          <div className="mobile-record-card">No expenses found.</div>
+          <div className="mobile-record-card">No payments found.</div>
         ) : filteredEntries.map(entry => (
           <div
             key={entry.expense_id}
@@ -297,7 +297,7 @@ const Expenses = () => {
           >
             <div className="mobile-card-title">
               <div>
-                {entry.expense_type_name || 'Expense'}
+                {entry.expense_type_name || 'Payment'}
                 <div className="mobile-card-subtitle">{formatDate(entry.expense_date)} · {entry.payment_mode || 'Payment'}</div>
               </div>
               <span className="mobile-badge">{formatAmount(entry.amount)}</span>

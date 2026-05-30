@@ -3,18 +3,23 @@ import API_BASE_URL from '../../api';
 
 const masterConfig = {
   income: {
-    title: 'Income Types',
+    title: 'Receipt Types',
     endpoint: '/api/income-types',
     idKey: 'income_type_id',
     nameKey: 'income_type_name',
-    placeholder: 'Income type name',
+    placeholder: 'Receipt type name',
+    supportsLoanRequirement: true,
+    supportsProfitImpact: true,
+    defaultAffectsProfit: false,
   },
   expense: {
-    title: 'Expense Types',
+    title: 'Payment Types',
     endpoint: '/api/expense-types',
     idKey: 'expense_type_id',
     nameKey: 'expense_type_name',
-    placeholder: 'Expense type name',
+    placeholder: 'Payment type name',
+    supportsProfitImpact: true,
+    defaultAffectsProfit: true,
   },
 };
 
@@ -54,6 +59,8 @@ const MasterPanel = ({ config }) => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [name, setName] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [requiresLoan, setRequiresLoan] = useState(false);
+  const [affectsProfit, setAffectsProfit] = useState(config.defaultAffectsProfit !== false);
   const [filterText, setFilterText] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -85,14 +92,18 @@ const MasterPanel = ({ config }) => {
     setSelectedRow(null);
     setName('');
     setIsActive(true);
+    setRequiresLoan(false);
+    setAffectsProfit(config.defaultAffectsProfit !== false);
     setFilterText('');
     loadRows();
-  }, [loadRows]);
+  }, [config.defaultAffectsProfit, loadRows]);
 
   const selectRow = row => {
     setSelectedRow(row);
     setName(row[config.nameKey] || '');
     setIsActive(row.is_active !== false);
+    setRequiresLoan(row.requires_loan === true);
+    setAffectsProfit(row.affects_profit === true);
     setError('');
     setSuccess('');
   };
@@ -101,6 +112,8 @@ const MasterPanel = ({ config }) => {
     setSelectedRow(null);
     setName('');
     setIsActive(true);
+    setRequiresLoan(false);
+    setAffectsProfit(config.defaultAffectsProfit !== false);
     setError('');
   };
 
@@ -127,6 +140,8 @@ const MasterPanel = ({ config }) => {
         body: JSON.stringify({
           [config.nameKey]: trimmedName,
           is_active: isActive,
+          ...(config.supportsLoanRequirement ? { requires_loan: requiresLoan } : {}),
+          ...(config.supportsProfitImpact ? { affects_profit: affectsProfit } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -143,11 +158,6 @@ const MasterPanel = ({ config }) => {
     }
   };
 
-  const toggleSelectedActive = async () => {
-    if (!selectedRow) return;
-    setIsActive(current => !current);
-  };
-
   return (
     <section>
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap', marginBottom: 16 }}>
@@ -161,9 +171,21 @@ const MasterPanel = ({ config }) => {
           />
         </label>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, paddingBottom: 8 }}>
-          <input type="checkbox" checked={isActive} onChange={toggleSelectedActive} />
+          <input type="checkbox" checked={isActive} onChange={event => setIsActive(event.target.checked)} />
           Active
         </label>
+        {config.supportsLoanRequirement && (
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, paddingBottom: 8 }}>
+            <input type="checkbox" checked={requiresLoan} onChange={event => setRequiresLoan(event.target.checked)} />
+            Loan required
+          </label>
+        )}
+        {config.supportsProfitImpact && (
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, paddingBottom: 8 }}>
+            <input type="checkbox" checked={affectsProfit} onChange={event => setAffectsProfit(event.target.checked)} />
+            Affects profit
+          </label>
+        )}
         <button type="submit" disabled={saving} style={{ padding: '8px 16px', border: 'none', borderRadius: 4, background: saving ? '#98a2b3' : '#1976d2', color: '#fff', cursor: saving ? 'not-allowed' : 'pointer' }}>
           {selectedRow ? 'Update' : 'Add'}
         </button>
@@ -187,14 +209,16 @@ const MasterPanel = ({ config }) => {
             <tr>
               <th style={{ padding: '7px 6px', borderBottom: '1px solid #ccc', textAlign: 'left', background: '#fafbfc' }}>ID</th>
               <th style={{ padding: '7px 6px', borderBottom: '1px solid #ccc', textAlign: 'left', background: '#fafbfc' }}>Name</th>
+              {config.supportsLoanRequirement && <th style={{ padding: '7px 6px', borderBottom: '1px solid #ccc', textAlign: 'left', background: '#fafbfc' }}>Loan</th>}
+              {config.supportsProfitImpact && <th style={{ padding: '7px 6px', borderBottom: '1px solid #ccc', textAlign: 'left', background: '#fafbfc' }}>Profit</th>}
               <th style={{ padding: '7px 6px', borderBottom: '1px solid #ccc', textAlign: 'left', background: '#fafbfc' }}>Status</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={3} style={{ padding: 12 }}>Loading...</td></tr>
+              <tr><td colSpan={2 + (config.supportsLoanRequirement ? 1 : 0) + (config.supportsProfitImpact ? 1 : 0) + 1} style={{ padding: 12 }}>Loading...</td></tr>
             ) : filteredRows.length === 0 ? (
-              <tr><td colSpan={3} style={{ padding: 12 }}>No records found.</td></tr>
+              <tr><td colSpan={2 + (config.supportsLoanRequirement ? 1 : 0) + (config.supportsProfitImpact ? 1 : 0) + 1} style={{ padding: 12 }}>No records found.</td></tr>
             ) : filteredRows.map(row => (
               <tr
                 key={row[config.idKey]}
@@ -204,6 +228,8 @@ const MasterPanel = ({ config }) => {
               >
                 <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row[config.idKey]}</td>
                 <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row[config.nameKey]}</td>
+                {config.supportsLoanRequirement && <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.requires_loan === true ? 'Required' : 'Optional'}</td>}
+                {config.supportsProfitImpact && <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.affects_profit === true ? 'Yes' : 'No'}</td>}
                 <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{row.is_active === false ? 'Inactive' : 'Active'}</td>
               </tr>
             ))}
@@ -229,6 +255,22 @@ const MasterPanel = ({ config }) => {
               </div>
               <span className="mobile-badge">{row.is_active === false ? 'Inactive' : 'Active'}</span>
             </div>
+            {config.supportsLoanRequirement && (
+              <div className="mobile-card-grid">
+                <div className="mobile-card-field">
+                  <span className="mobile-card-label">Loan</span>
+                  <span className="mobile-card-value">{row.requires_loan === true ? 'Required' : 'Optional'}</span>
+                </div>
+              </div>
+            )}
+            {config.supportsProfitImpact && (
+              <div className="mobile-card-grid">
+                <div className="mobile-card-field">
+                  <span className="mobile-card-label">Profit</span>
+                  <span className="mobile-card-value">{row.affects_profit === true ? 'Yes' : 'No'}</span>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

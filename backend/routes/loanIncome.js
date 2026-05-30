@@ -10,7 +10,7 @@ const normalizeText = (value) => {
 
 const verifyIncomeType = async (client, incomeTypeId) => {
   const result = await client.query(
-    `SELECT income_type_id, income_type_name
+    `SELECT income_type_id, income_type_name, COALESCE(requires_loan, false) AS requires_loan, COALESCE(affects_profit, false) AS affects_profit
      FROM income_types
      WHERE income_type_id = $1 AND COALESCE(is_active, true) = true`,
     [incomeTypeId]
@@ -38,7 +38,7 @@ export function loanIncomeEndpoint(
   app.get('/api/income-types', async (req, res) => {
     try {
       const result = await pool.query(
-        `SELECT income_type_id, income_type_name, is_active
+        `SELECT income_type_id, income_type_name, is_active, COALESCE(requires_loan, false) AS requires_loan, COALESCE(affects_profit, false) AS affects_profit
          FROM income_types
          ORDER BY income_type_name`
       );
@@ -50,18 +50,20 @@ export function loanIncomeEndpoint(
 
   app.post('/api/income-types', requireCreateLoans, async (req, res) => {
     const incomeTypeName = normalizeText(req.body.income_type_name);
+    const requiresLoan = req.body.requires_loan === true;
+    const affectsProfit = req.body.affects_profit === true;
     if (!incomeTypeName) {
       return res.status(400).json({ error: 'Income type name is required' });
     }
 
     try {
       const result = await pool.query(
-        `INSERT INTO income_types (income_type_name)
-         VALUES ($1)
+        `INSERT INTO income_types (income_type_name, requires_loan, affects_profit)
+         VALUES ($1, $2, $3)
          ON CONFLICT (income_type_name)
-         DO UPDATE SET is_active = true, updated_at = NOW()
-         RETURNING income_type_id, income_type_name, is_active`,
-        [incomeTypeName]
+         DO UPDATE SET is_active = true, requires_loan = EXCLUDED.requires_loan, affects_profit = EXCLUDED.affects_profit, updated_at = NOW()
+         RETURNING income_type_id, income_type_name, is_active, COALESCE(requires_loan, false) AS requires_loan, COALESCE(affects_profit, false) AS affects_profit`,
+        [incomeTypeName, requiresLoan, affectsProfit]
       );
       res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -73,6 +75,8 @@ export function loanIncomeEndpoint(
     const { income_type_id } = req.params;
     const incomeTypeName = normalizeText(req.body.income_type_name);
     const isActive = req.body.is_active;
+    const requiresLoan = req.body.requires_loan;
+    const affectsProfit = req.body.affects_profit;
 
     if (!incomeTypeName) {
       return res.status(400).json({ error: 'Income type name is required' });
@@ -83,10 +87,18 @@ export function loanIncomeEndpoint(
         `UPDATE income_types
          SET income_type_name = $1,
              is_active = COALESCE($2, is_active),
+             requires_loan = COALESCE($3, requires_loan),
+             affects_profit = COALESCE($4, affects_profit),
              updated_at = NOW()
-         WHERE income_type_id = $3
-         RETURNING income_type_id, income_type_name, is_active`,
-        [incomeTypeName, typeof isActive === 'boolean' ? isActive : null, income_type_id]
+         WHERE income_type_id = $5
+         RETURNING income_type_id, income_type_name, is_active, COALESCE(requires_loan, false) AS requires_loan, COALESCE(affects_profit, false) AS affects_profit`,
+        [
+          incomeTypeName,
+          typeof isActive === 'boolean' ? isActive : null,
+          typeof requiresLoan === 'boolean' ? requiresLoan : null,
+          typeof affectsProfit === 'boolean' ? affectsProfit : null,
+          income_type_id,
+        ]
       );
 
       if (!result.rows.length) {
@@ -177,7 +189,6 @@ export function loanIncomeEndpoint(
     const receivedBy = normalizeText(req.body.received_by) || req.user?.name || null;
     const notes = normalizeText(req.body.notes);
 
-    if (!loanId) return res.status(400).json({ error: 'Loan ID is required' });
     if (!incomeTypeId) return res.status(400).json({ error: 'Income type is required' });
     if (!incomeDate) return res.status(400).json({ error: 'Income date is required' });
     if (!amount) return res.status(400).json({ error: 'Amount must be greater than zero' });
@@ -186,16 +197,21 @@ export function loanIncomeEndpoint(
     try {
       await client.query('BEGIN');
 
-      const loan = await getLoanCustomer(client, loanId);
-      if (!loan) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ error: `Loan not found: ${loanId}` });
-      }
-
       const incomeType = await verifyIncomeType(client, incomeTypeId);
       if (!incomeType) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Active income type not found' });
+      }
+
+      if (incomeType.requires_loan && !loanId) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Loan ID is required for this receipt type' });
+      }
+
+      const loan = loanId ? await getLoanCustomer(client, loanId) : null;
+      if (loanId && !loan) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: `Loan not found: ${loanId}` });
       }
 
       const result = await client.query(
@@ -210,13 +226,13 @@ export function loanIncomeEndpoint(
          )
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
-        [loan.loan_id, loan.customer_id, incomeType.income_type_id, incomeDate, amount, receivedBy, notes]
+        [loan?.loan_id || null, loan?.customer_id || null, incomeType.income_type_id, incomeDate, amount, receivedBy, notes]
       );
 
       await client.query('COMMIT');
       res.status(201).json({
         ...result.rows[0],
-        customer_name: loan.customer_name,
+        customer_name: loan?.customer_name || null,
         income_type_name: incomeType.income_type_name,
       });
     } catch (err) {
@@ -236,7 +252,6 @@ export function loanIncomeEndpoint(
     const receivedBy = normalizeText(req.body.received_by) || req.user?.name || null;
     const notes = normalizeText(req.body.notes);
 
-    if (!loanId) return res.status(400).json({ error: 'Loan ID is required' });
     if (!incomeTypeId) return res.status(400).json({ error: 'Income type is required' });
     if (!incomeDate) return res.status(400).json({ error: 'Income date is required' });
     if (!amount) return res.status(400).json({ error: 'Amount must be greater than zero' });
@@ -245,16 +260,21 @@ export function loanIncomeEndpoint(
     try {
       await client.query('BEGIN');
 
-      const loan = await getLoanCustomer(client, loanId);
-      if (!loan) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ error: `Loan not found: ${loanId}` });
-      }
-
       const incomeType = await verifyIncomeType(client, incomeTypeId);
       if (!incomeType) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Active income type not found' });
+      }
+
+      if (incomeType.requires_loan && !loanId) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Loan ID is required for this receipt type' });
+      }
+
+      const loan = loanId ? await getLoanCustomer(client, loanId) : null;
+      if (loanId && !loan) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: `Loan not found: ${loanId}` });
       }
 
       const result = await client.query(
@@ -269,7 +289,7 @@ export function loanIncomeEndpoint(
              updated_at = NOW()
          WHERE loan_income_id = $8
          RETURNING *`,
-        [loan.loan_id, loan.customer_id, incomeType.income_type_id, incomeDate, amount, receivedBy, notes, loan_income_id]
+        [loan?.loan_id || null, loan?.customer_id || null, incomeType.income_type_id, incomeDate, amount, receivedBy, notes, loan_income_id]
       );
 
       if (!result.rows.length) {
@@ -280,7 +300,7 @@ export function loanIncomeEndpoint(
       await client.query('COMMIT');
       res.json({
         ...result.rows[0],
-        customer_name: loan.customer_name,
+        customer_name: loan?.customer_name || null,
         income_type_name: incomeType.income_type_name,
       });
     } catch (err) {

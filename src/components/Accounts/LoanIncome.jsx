@@ -67,6 +67,8 @@ const LoanIncome = () => {
 
   const selectedCustomerOption = customerOptions.find(option => option.value === selectedCustomerId) || null;
   const selectedLoanOption = loanOptions.find(option => option.value === selectedLoanId) || null;
+  const selectedIncomeType = incomeTypes.find(type => String(type.income_type_id) === String(form.income_type_id)) || null;
+  const requiresLoan = selectedIncomeType?.requires_loan === true;
 
   const filteredEntries = useMemo(() => {
     const text = filterText.trim().toLowerCase();
@@ -103,7 +105,7 @@ const LoanIncome = () => {
       ]);
 
       if (!customersRes.ok || !loansRes.ok || !incomeTypesRes.ok || !entriesRes.ok) {
-        throw new Error('Unable to load loan income data.');
+        throw new Error('Unable to load receipts.');
       }
 
       const [customerData, loanData, incomeTypeData, entryData] = await Promise.all([
@@ -118,7 +120,7 @@ const LoanIncome = () => {
       setIncomeTypes(Array.isArray(incomeTypeData) ? incomeTypeData.filter(type => type.is_active !== false) : []);
       setEntries(Array.isArray(entryData) ? entryData : []);
     } catch (err) {
-      setError(err.message || 'Unable to load loan income data.');
+      setError(err.message || 'Unable to load receipts.');
     } finally {
       setLoading(false);
     }
@@ -153,6 +155,22 @@ const LoanIncome = () => {
     setForm(current => ({ ...current, [name]: value }));
   };
 
+  const selectEntry = entry => {
+    setSelectedEntry(entry);
+    setSelectedLoanId(entry.loan_id || '');
+    setSelectedCustomerId(entry.customer_id || '');
+    setForm({
+      loan_id: entry.loan_id || '',
+      income_type_id: entry.income_type_id || '',
+      income_date: entry.income_date ? String(entry.income_date).slice(0, 10) : today,
+      amount: entry.amount || '',
+      received_by: entry.received_by || '',
+      notes: entry.notes || '',
+    });
+    setError('');
+    setSuccess('');
+  };
+
   const handleSubmit = async event => {
     event.preventDefault();
     setSaving(true);
@@ -162,25 +180,29 @@ const LoanIncome = () => {
     try {
       const payload = {
         ...form,
-        loan_id: form.loan_id || selectedLoanId,
+        loan_id: form.loan_id || selectedLoanId || '',
         income_type_id: form.income_type_id,
         amount: form.amount,
       };
 
-      const res = await fetch(`${API_BASE_URL}/api/loan-income`, {
-        method: 'POST',
+      const url = selectedEntry
+        ? `${API_BASE_URL}/api/loan-income/${selectedEntry.loan_income_id}`
+        : `${API_BASE_URL}/api/loan-income`;
+      const res = await fetch(url, {
+        method: selectedEntry ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Unable to save loan income.');
+      if (!res.ok) throw new Error(data.error || 'Unable to save receipt.');
 
-      setSuccess('Loan income saved.');
+      setSelectedEntry(null);
+      setSuccess(selectedEntry ? 'Receipt updated.' : 'Receipt saved.');
       setForm({ ...initialForm, loan_id: selectedLoanId || '' });
       await loadData();
       setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
-      setError(err.message || 'Unable to save loan income.');
+      setError(err.message || 'Unable to save receipt.');
     } finally {
       setSaving(false);
     }
@@ -188,7 +210,7 @@ const LoanIncome = () => {
 
   const handleDelete = async () => {
     if (!selectedEntry) return;
-    if (!window.confirm(`Delete income entry ${selectedEntry.loan_income_id}?`)) return;
+    if (!window.confirm(`Delete receipt ${selectedEntry.loan_income_id}?`)) return;
 
     setSaving(true);
     setError('');
@@ -198,14 +220,14 @@ const LoanIncome = () => {
         method: 'DELETE',
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Unable to delete loan income.');
+      if (!res.ok) throw new Error(data.error || 'Unable to delete receipt.');
 
       setSelectedEntry(null);
-      setSuccess('Loan income deleted.');
+      setSuccess('Receipt deleted.');
       await loadData();
       setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
-      setError(err.message || 'Unable to delete loan income.');
+      setError(err.message || 'Unable to delete receipt.');
     } finally {
       setSaving(false);
     }
@@ -213,7 +235,7 @@ const LoanIncome = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2 style={{ color: 'navy', margin: '0 0 18px' }}>Loan Income</h2>
+      <h2 style={{ color: 'navy', margin: '0 0 18px' }}>Receipts</h2>
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, alignItems: 'end', marginBottom: 16 }}>
         <label style={{ fontSize: 13, color: '#444' }}>
@@ -234,7 +256,7 @@ const LoanIncome = () => {
         </label>
 
         <label style={{ fontSize: 13, color: '#444' }}>
-          Loan
+          Loan {requiresLoan ? '' : '(Optional)'}
           <Select
             options={loanOptions}
             value={selectedLoanOption}
@@ -251,7 +273,7 @@ const LoanIncome = () => {
         </label>
 
         <label style={{ fontSize: 13, color: '#444' }}>
-          Income Type
+          Receipt Type
           <select name="income_type_id" value={form.income_type_id} onChange={handleChange} required style={{ display: 'block', marginTop: 4, padding: 7, width: '100%', fontSize: 13 }}>
             <option value="">Select type</option>
             {incomeTypes.map(type => (
@@ -281,8 +303,8 @@ const LoanIncome = () => {
         </label>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button type="submit" disabled={saving || !form.loan_id} style={{ padding: '8px 16px', fontSize: 13, border: 'none', borderRadius: 4, background: saving || !form.loan_id ? '#98a2b3' : '#1976d2', color: '#fff', cursor: saving || !form.loan_id ? 'not-allowed' : 'pointer' }}>
-            {saving ? 'Saving...' : 'Save Income'}
+          <button type="submit" disabled={saving || (requiresLoan && !form.loan_id)} style={{ padding: '8px 16px', fontSize: 13, border: 'none', borderRadius: 4, background: saving || (requiresLoan && !form.loan_id) ? '#98a2b3' : '#1976d2', color: '#fff', cursor: saving || (requiresLoan && !form.loan_id) ? 'not-allowed' : 'pointer' }}>
+            {saving ? 'Saving...' : 'Save Receipt'}
           </button>
           <button type="button" onClick={handleDelete} disabled={saving || !selectedEntry} style={{ padding: '8px 16px', fontSize: 13, border: '1px solid #b42318', borderRadius: 4, background: saving || !selectedEntry ? '#f2f4f7' : '#d92d20', color: saving || !selectedEntry ? '#98a2b3' : '#fff', cursor: saving || !selectedEntry ? 'not-allowed' : 'pointer' }}>
             Delete
@@ -313,16 +335,16 @@ const LoanIncome = () => {
             {loading ? (
               <tr><td colSpan={7} style={{ padding: 12 }}>Loading...</td></tr>
             ) : filteredEntries.length === 0 ? (
-              <tr><td colSpan={7} style={{ padding: 12 }}>No loan income found.</td></tr>
+              <tr><td colSpan={7} style={{ padding: 12 }}>No receipts found.</td></tr>
             ) : filteredEntries.map(entry => (
               <tr
                 key={entry.loan_income_id}
                 className={selectedEntry?.loan_income_id === entry.loan_income_id ? 'selected-record-row' : undefined}
-                onClick={() => setSelectedEntry(entry)}
+                onClick={() => selectEntry(entry)}
                 style={{ cursor: 'pointer' }}
               >
                 <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{formatDate(entry.income_date)}</td>
-                <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{entry.loan_id}</td>
+                <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{entry.loan_id || ''}</td>
                 <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{entry.customer_name || entry.customer_id}</td>
                 <td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{entry.income_type_name}</td>
                 <td style={{ padding: '6px', borderBottom: '1px solid #eee', textAlign: 'right' }}>{formatAmount(entry.amount)}</td>
@@ -338,17 +360,17 @@ const LoanIncome = () => {
         {loading ? (
           <div className="mobile-record-card">Loading...</div>
         ) : filteredEntries.length === 0 ? (
-          <div className="mobile-record-card">No loan income found.</div>
+          <div className="mobile-record-card">No receipts found.</div>
         ) : filteredEntries.map(entry => (
           <div
             key={entry.loan_income_id}
             className={`mobile-record-card ${selectedEntry?.loan_income_id === entry.loan_income_id ? 'selected' : ''}`}
-            onClick={() => setSelectedEntry(entry)}
+            onClick={() => selectEntry(entry)}
           >
             <div className="mobile-card-title">
               <div>
                 {entry.customer_name || entry.customer_id}
-                <div className="mobile-card-subtitle">Loan {entry.loan_id} · {formatDate(entry.income_date)}</div>
+                <div className="mobile-card-subtitle">{entry.loan_id ? `Loan ${entry.loan_id} · ` : ''}{formatDate(entry.income_date)}</div>
               </div>
               <span className="mobile-badge">{entry.income_type_name}</span>
             </div>
