@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import Select from 'react-select';
 import API_BASE_URL from '../../api';
+import { getCurrentEmployee } from '../../permissions';
 
 const columns = [
 	{ label: 'Collection ID', key: 'collection_id', style: { minWidth: 110, maxWidth: 130, width: 120 } },
@@ -63,6 +64,8 @@ const initialForm = {
 
 
 const Collections = () => {
+	const employee = getCurrentEmployee();
+	const isManager = employee?.role === 'Manager';
 	const [sortKey, setSortKey] = useState('');
 	const [sortOrder, setSortOrder] = useState('asc');
 
@@ -265,6 +268,10 @@ const Collections = () => {
 		// Open modal for add or edit
 				// Delete collection logic
 				const handleDeleteCollection = async () => {
+					if (isManager) {
+						setDeleteWarning('Managers cannot delete collections.');
+						return;
+					}
 					if (!selectedRow) return;
 					setDeleteWarning('');
 					if (!window.confirm(`Are you sure you want to delete collection ${selectedRow.collection_id}? This action cannot be undone.`)) {
@@ -291,6 +298,10 @@ const Collections = () => {
 		};
 
 		const openEditModal = () => {
+			if (isManager) {
+				setFormError('Managers cannot edit collections.');
+				return;
+			}
 			if (!selectedRow) return;
 			setShowModal(true);
 			setIsEditMode(true);
@@ -387,6 +398,10 @@ const Collections = () => {
 			e.preventDefault();
 			setFormError('');
 			setSuccessMsg('');
+			if (isEditMode && isManager) {
+				setFormError('Managers cannot edit collections.');
+				return;
+			}
 			// Basic validation
 			if (!form.customer_id || !form.loan_id || !form.collection_date || !form.collection_amount || !form.collection_type || !form.collected_by_name) {
 				setFormError('All fields are required.');
@@ -460,8 +475,36 @@ const Collections = () => {
 				{/* Header row for buttons and filters */}
 				<div className="mobile-toolbar" style={{ display: 'flex', gap: 10, marginBottom: 12, fontSize: '13px' }}>
 					<button onClick={openAddModal} style={{ background: 'navy', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 18px' }}>Add Collection</button>
-					<button disabled={!selectedRow} onClick={openEditModal} style={{ background: selectedRow ? '#ffd600' : '#eee', color: selectedRow ? '#222' : '#888', border: 'none', borderRadius: 4, padding: '6px 18px' }}>Edit Collection</button>
-					<button disabled={!selectedRow} onClick={handleDeleteCollection} style={{ background: selectedRow ? '#e53935' : '#eee', color: selectedRow ? '#fff' : '#888', border: 'none', borderRadius: 4, padding: '6px 18px' }}>Delete Collection</button>
+					<button
+						disabled={!selectedRow || isManager}
+						onClick={openEditModal}
+						title={isManager ? 'Managers cannot edit collections' : undefined}
+						style={{
+							background: selectedRow && !isManager ? '#ffd600' : '#eee',
+							color: selectedRow && !isManager ? '#222' : '#888',
+							border: 'none',
+							borderRadius: 4,
+							padding: '6px 18px',
+							cursor: selectedRow && !isManager ? 'pointer' : 'default',
+						}}
+					>
+						Edit Collection
+					</button>
+					<button
+						disabled={!selectedRow || isManager}
+						onClick={handleDeleteCollection}
+						title={isManager ? 'Managers cannot delete collections' : undefined}
+						style={{
+							background: selectedRow && !isManager ? '#e53935' : '#eee',
+							color: selectedRow && !isManager ? '#fff' : '#888',
+							border: 'none',
+							borderRadius: 4,
+							padding: '6px 18px',
+							cursor: selectedRow && !isManager ? 'pointer' : 'default',
+						}}
+					>
+						Delete Collection
+					</button>
 						{deleteWarning && <div style={{ color: 'red', marginBottom: 12, fontWeight: 600 }}>{deleteWarning}</div>}
 					<button onClick={() => setShowExportDialog(true)} style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 18px' }}>Export</button>
 					<button
