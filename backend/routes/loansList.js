@@ -6,7 +6,7 @@ export function loansListEndpoint(app, pool) {
      // Optionally support text filter via query param
      const { text } = req.query;
      let query = `
-       SELECT l.loan_id, l.customer_id, c.customer_name, c.mobile_number, l.loan_type, l.issue_date, l.maturity_date, l.closing_date, l.issue_amount, l.interest_received, l.adjustment, l.status, l.loan_status_closed
+       SELECT l.loan_id, l.customer_id, c.customer_name, c.mobile_number, l.loan_type, l.issue_date, l.maturity_date, l.closing_date, l.issue_amount, l.adjustment, l.status, l.loan_status_closed
        FROM loans l
        LEFT JOIN customers c ON l.customer_id = c.customer_id
      `;

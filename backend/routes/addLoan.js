@@ -56,7 +56,7 @@ export function addLoanEndpoint(app, pool, requireCreateLoans = (req, res, next)
   });
 
   app.post('/api/loans', requireCreateLoans, async (req, res) => {
-    const { customer_id, loan_type, issue_date, issue_amount, interest_received, maturity_date } = req.body;
+    const { customer_id, loan_type, issue_date, issue_amount, maturity_date } = req.body;
     const issueDateObj = parseDate(issue_date);
     if (!issueDateObj) {
       return res.status(400).json({ error: 'Valid issue_date is required' });
@@ -101,15 +101,14 @@ export function addLoanEndpoint(app, pool, requireCreateLoans = (req, res, next)
         : calculateDefaultMaturityDate(loanTypeCode, issueDateObj);
 
       const result = await client.query(
-        `INSERT INTO loans (loan_id, customer_id, loan_type, issue_date, issue_amount, interest_received, maturity_date, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        `INSERT INTO loans (loan_id, customer_id, loan_type, issue_date, issue_amount, maturity_date, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
         [
           loan_id,
           customer_id,
           loan_type,
           formatDate(issueDateObj),
           issue_amount,
-          interest_received === undefined || interest_received === '' ? null : interest_received,
           finalMaturityDate,
           'Open'
         ]

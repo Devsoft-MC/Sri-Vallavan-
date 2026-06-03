@@ -46,11 +46,6 @@ function CloseLoanForm({ loan, onClose, onSuccess }) {
     { value: 'Closed', label: 'Closed' },
   ];
   const [status, setStatus] = useState(loan?.status || 'Open');
-  const [interestReceived, setInterestReceived] = useState(
-    loan?.interest_received === undefined || loan?.interest_received === null || loan?.interest_received === ''
-      ? '0'
-      : String(loan.interest_received)
-  );
   const [adjustment, setAdjustment] = useState(
     loan?.adjustment === undefined || loan?.adjustment === null || loan?.adjustment === ''
       ? '0'
@@ -99,7 +94,6 @@ function CloseLoanForm({ loan, onClose, onSuccess }) {
         body: JSON.stringify({
           loan_id: loan.loan_id,
           status,
-          interest_received: interestReceived,
           adjustment,
           closing_date: closingDate ? String(closingDate) : undefined, // always send as YYYY-MM-DD string
         }),
@@ -161,17 +155,6 @@ function CloseLoanForm({ loan, onClose, onSuccess }) {
             step="0.01"
             value={adjustment}
             onChange={e => setAdjustment(e.target.value)}
-            style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
-          />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <label>Interest Received</label><br />
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={interestReceived}
-            onChange={e => setInterestReceived(e.target.value)}
             style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
           />
         </div>

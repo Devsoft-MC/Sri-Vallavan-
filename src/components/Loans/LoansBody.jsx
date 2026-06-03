@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 export const columns = [
   { label: 'Loan ID', key: 'loan_id' },
@@ -9,7 +9,6 @@ export const columns = [
   { label: 'Loan Issued Amount', key: 'issue_amount' },
   { label: 'Collected Amount', key: 'collected_amount' },
   { label: 'Balance', key: 'balance' },
-  { label: 'Interest Received', key: 'interest_received' },
   { label: 'Adjustments', key: 'adjustment' },
   { label: 'Status', key: 'status' },
 ];
@@ -77,7 +76,6 @@ const LoansBody = ({ loans, loading, error, sortKey, sortOrder, onSort, onRowCli
                       'issue_amount',
                       'collected_amount',
                       'balance',
-                      'interest_received',
                       'adjustment',
                     ].includes(col.key) && value !== undefined && value !== null) {
                       value = Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });

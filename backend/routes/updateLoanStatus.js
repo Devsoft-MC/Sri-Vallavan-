@@ -26,25 +26,25 @@ export function updateLoanStatusEndpoint(app, pool, requireCreateLoans = (req, r
   });
 
   app.post('/api/loans/status', requireCreateLoans, async (req, res) => {
-    const { loan_id, status, interest_received, adjustment, close_date } = req.body;
+    const { loan_id, status, adjustment } = req.body;
+    const closeDate = req.body.close_date || req.body.closing_date;
     if (!loan_id || !status) {
       return res.status(400).json({ error: 'loan_id and status are required' });
     }
     // If closing, require close_date
-    if (String(status).toLowerCase() === 'closed' && (!close_date || close_date === '')) {
+    if (String(status).toLowerCase() === 'closed' && (!closeDate || closeDate === '')) {
       return res.status(400).json({ error: 'close_date is required when closing a loan' });
     }
     try {
       // Convert empty string to null for numeric fields
       const adjVal = adjustment === '' ? null : adjustment;
-      const intVal = interest_received === '' ? null : interest_received;
       let query, params;
       if (status.toLowerCase() === 'closed') {
-        query = 'UPDATE loans SET status = $1, interest_received = $2, adjustment = $3, loan_status_closed = true, closing_date = $4 WHERE loan_id = $5 RETURNING *';
-        params = [status, intVal, adjVal, close_date, loan_id];
+        query = 'UPDATE loans SET status = $1, adjustment = $2, loan_status_closed = true, closing_date = $3 WHERE loan_id = $4 RETURNING *';
+        params = [status, adjVal, closeDate, loan_id];
       } else {
-        query = 'UPDATE loans SET status = $1, interest_received = $2, adjustment = $3, loan_status_closed = false, closing_date = null WHERE loan_id = $4 RETURNING *';
-        params = [status, intVal, adjVal, loan_id];
+        query = 'UPDATE loans SET status = $1, adjustment = $2, loan_status_closed = false, closing_date = null WHERE loan_id = $3 RETURNING *';
+        params = [status, adjVal, loan_id];
       }
       const result = await pool.query(query, params);
       if (result.rows.length === 0) {

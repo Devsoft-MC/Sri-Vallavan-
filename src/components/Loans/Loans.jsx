@@ -10,7 +10,6 @@ const emptyNewLoanForm = {
 	loan_type: '',
 	issue_date: new Date().toISOString().slice(0, 10),
 	issue_amount: '',
-	interest_received: '',
 	maturity_date: '',
 };
 
@@ -25,7 +24,6 @@ const columns = [
 	{ label: 'Loan Issued Amount', key: 'issue_amount' },
 	{ label: 'Collected Amount', key: 'collected_amount' },
 	{ label: 'Balance', key: 'balance' },
-	{ label: 'Interest Received', key: 'interest_received' },
 	{ label: 'Adjustments', key: 'adjustments' },
 	{ label: 'Status', key: 'status' },
 ];
@@ -299,7 +297,6 @@ const Loans = () => {
 	const totalCollected = filteredLoans.reduce((sum, loan) => sum + getCollectedAmount(loan.loan_id), 0);
 	const totalBalance = totalIssued - totalCollected;
 	const totalAdjustments = filteredLoans.reduce((sum, loan) => sum + (parseFloat(loan.adjustments) || 0), 0);
-	const totalInterestReceived = filteredLoans.reduce((sum, loan) => sum + (parseFloat(loan.interest_received) || 0), 0);
 	const customerOptions = customers.map(customer => ({
 		value: customer.customer_id,
 		label: `${customer.customer_id} - ${customer.customer_name}`,
@@ -365,7 +362,7 @@ const Loans = () => {
 				className="loan-totals-strip"
 				style={{
 					display: 'grid',
-					gridTemplateColumns: 'repeat(5, minmax(130px, 1fr))',
+					gridTemplateColumns: 'repeat(4, minmax(130px, 1fr))',
 					gap: 8,
 					marginBottom: 12,
 					fontSize: '13px',
@@ -386,10 +383,6 @@ const Loans = () => {
 				<div style={{ background: '#f5f7fb', border: '1px solid #e2e8f0', borderRadius: 6, padding: '8px 10px' }}>
 					<div style={{ color: '#667085', fontSize: '12px' }}>Balance</div>
 					<div style={{ fontWeight: 700 }}>{formatAmount(totalBalance)}</div>
-				</div>
-				<div style={{ background: '#f5f7fb', border: '1px solid #e2e8f0', borderRadius: 6, padding: '8px 10px' }}>
-					<div style={{ color: '#667085', fontSize: '12px' }}>Interest</div>
-					<div style={{ fontWeight: 700 }}>{formatAmount(totalInterestReceived)}</div>
 				</div>
 			</div>
 			{showCloseLoanModal && (
@@ -500,18 +493,6 @@ const Loans = () => {
 										style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc', boxSizing: 'border-box' }}
 									/>
 								</div>
-								<div style={{ marginBottom: 10 }}>
-									<label style={{ display: 'block', marginBottom: 4 }}>Interest Received</label>
-									<input
-										name="interest_received"
-										type="number"
-										min="0"
-										step="0.01"
-										value={newLoanForm.interest_received}
-										onChange={handleNewLoanChange}
-										style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc', boxSizing: 'border-box' }}
-									/>
-								</div>
 							</>
 						)}
 						{newLoanError && <div style={{ color: 'red', marginBottom: 12 }}>{newLoanError}</div>}
@@ -605,12 +586,6 @@ const Loans = () => {
 									return (
 										<td key={col.key} style={{ padding: '4px 6px', border: 'none', background: '#f9f9f9', textAlign: 'right' }}>
 											Adjustments: {totalAdjustments.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-										</td>
-									);
-								} else if (col.key === 'interest_received') {
-									return (
-										<td key={col.key} style={{ padding: '4px 6px', border: 'none', background: '#f9f9f9', textAlign: 'right' }}>
-											Interest: {totalInterestReceived.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 										</td>
 									);
 								} else if (idx === 0) {

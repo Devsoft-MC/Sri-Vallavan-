@@ -30,11 +30,6 @@ const backendUrl = API_BASE_URL;
 
 function EditLoanStatusForm({ loan, onClose }) {
   const [status, setStatus] = useState(loan.status || 'Open');
-  const [interestReceived, setInterestReceived] = useState(
-    loan.interest_received === undefined || loan.interest_received === null || loan.interest_received === ''
-      ? '0'
-      : String(loan.interest_received)
-  );
   const [adjustment, setAdjustment] = useState(
     loan.adjustment === undefined || loan.adjustment === null || loan.adjustment === ''
       ? '0'
@@ -65,7 +60,6 @@ function EditLoanStatusForm({ loan, onClose }) {
         body: JSON.stringify({
           loan_id: loan.loan_id,
           status,
-          interest_received: interestReceived,
           adjustment: adjustment
         }),
       });
@@ -112,10 +106,6 @@ function EditLoanStatusForm({ loan, onClose }) {
         <div style={{ marginBottom: 12 }}>
           <label>Balance</label><br />
           <input type="text" value={balance.toLocaleString(undefined, { minimumFractionDigits: 2 })} readOnly style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc', background: balance === 0 ? '#e8f5e9' : '#fff3e0', color: balance === 0 ? 'green' : 'red' }} />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <label>Interest Received</label><br />
-          <input type="number" value={interestReceived} onChange={e => setInterestReceived(e.target.value)} style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc' }} />
         </div>
         <div style={{ marginBottom: 12 }}>
           <label>Adjustments</label><br />
