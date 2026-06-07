@@ -1102,7 +1102,8 @@ app.post('/api/auth/login', async (req, res) => {
       employee: emp,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error in /api/auth/login:', err);
+    res.status(500).json({ error: 'Login server error. Please try again later.' });
   }
 });
 
@@ -1194,7 +1195,8 @@ app.post('/api/login', async (req, res) => {
       expiresAt: Date.now() + 8 * 60 * 60 * 1000,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error in /api/login:', err);
+    res.status(500).json({ error: 'Login server error. Please try again later.' });
   }
 });
 
