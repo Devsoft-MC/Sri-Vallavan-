@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import API_BASE_URL from '../../api';
+import { getLoanBalance } from '../../utils/loanUtils';
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -163,7 +164,7 @@ const ActiveLoanPositionReport = () => {
           maturity_date: maturityDate,
           issue_amount: issuedAmount,
           collected_amount: collectedAmount,
-          balance_amount: issuedAmount - collectedAmount,
+          balance_amount: getLoanBalance(loan, collectedByLoan),
         };
       });
   }, [asOnDate, collections, customers, loans]);

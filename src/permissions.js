@@ -17,6 +17,7 @@ const roleAccess = {
   'Customer Analysis': ['Admin', 'Manager', 'Viewer'],
   'Collection Details': ['Admin', 'Manager', 'Viewer', 'Loan Officer', 'Collection Agent'],
   'Customer Status': ['Admin', 'Manager', 'Viewer'],
+  'Defaulters': ['Admin', 'Manager', 'Viewer', 'Loan Officer', 'Collection Agent'],
 };
 
 export function getCurrentEmployee() {

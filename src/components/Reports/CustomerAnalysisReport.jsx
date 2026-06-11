@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Select from 'react-select';
 import API_BASE_URL from '../../api';
+import { getLoanCollectedAmount, getLoanBalance } from '../../utils/loanUtils';
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -292,8 +293,8 @@ const CustomerAnalysisReport = () => {
       row.area = row.area || customer.area_name || customer.area || '';
 
       const issuedAmount = toAmount(loan.issue_amount);
-      const collectedAmount = collectedByLoan.get(loan.loan_id) || 0;
-      const balanceAmount = issuedAmount - collectedAmount;
+      const collectedAmount = getLoanCollectedAmount(loan, collectedByLoan);
+      const balanceAmount = getLoanBalance(loan, collectedByLoan);
       const closed = isClosedLoan(loan);
       const closingDate = getClosingDate(loan);
       const maturityDate = normalizeDate(loan.maturity_date);

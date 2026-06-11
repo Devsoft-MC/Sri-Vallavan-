@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Select from 'react-select';
 import API_BASE_URL from '../../api';
+import { getLoanCollectedAmount, getLoanBalance } from '../../utils/loanUtils';
 
 const loanColumns = [
   { key: 'loan_id', label: 'Loan No' },
@@ -171,15 +172,11 @@ const CollectionDetailsReport = () => {
     return loans
       .filter(loan => loan.customer_id === selectedCustomerId)
       .map(loan => {
-        const loanCollections = collectionsByLoan.get(String(loan.loan_id || '').trim()) || [];
-        const collectedAmount = loanCollections.reduce((sum, collection) => sum + toAmount(collection.collection_amount), 0);
-        const issueAmount = toAmount(loan.issue_amount);
-
         return {
           ...loan,
           display_status: formatLoanStatus(loan),
-          collected_amount: collectedAmount,
-          balance_amount: issueAmount - collectedAmount,
+          collected_amount: getLoanCollectedAmount(loan, collectionsByLoan),
+          balance_amount: getLoanBalance(loan, collectionsByLoan),
         };
       })
       .sort((a, b) => String(b.issue_date || '').localeCompare(String(a.issue_date || '')));

@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Select from 'react-select';
 import API_BASE_URL from '../../api';
+import { getLoanCollectedAmount, getLoanBalance } from '../../utils/loanUtils';
 import CloseLoanForm from './CloseLoanForm';
 
 const emptyNewLoanForm = {
@@ -47,6 +48,11 @@ function formatAmount(value) {
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2,
 	});
+}
+
+function toAmount(value) {
+	const number = Number(value);
+	return Number.isFinite(number) ? number : 0;
 }
 
 function addDaysUtc(dateObj, days) {
@@ -241,19 +247,6 @@ const Loans = () => {
 		}
 	};
 
-	const collectedByLoanId = useMemo(() => {
-		return collections.reduce((totals, collection) => {
-			const loanId = String(collection.loan_id || '').trim();
-			if (!loanId) return totals;
-			totals[loanId] = (totals[loanId] || 0) + (parseFloat(collection.collection_amount) || 0);
-			return totals;
-		}, {});
-	}, [collections]);
-
-	function getCollectedAmount(loan_id) {
-		return collectedByLoanId[String(loan_id || '').trim()] || 0;
-	}
-
 	const filteredLoans = useMemo(() => {
 		let filtered = loans.filter(loan =>
 			Object.values(loan).some(val =>
@@ -271,11 +264,11 @@ const Loans = () => {
 			let bVal = b[sortKey];
 			// Special handling for collected_amount and balance
 			if (sortKey === 'collected_amount') {
-				aVal = getCollectedAmount(a.loan_id);
-				bVal = getCollectedAmount(b.loan_id);
+				aVal = getLoanCollectedAmount(a);
+				bVal = getLoanCollectedAmount(b);
 			} else if (sortKey === 'balance') {
-				aVal = (parseFloat(a.issue_amount) || 0) - getCollectedAmount(a.loan_id);
-				bVal = (parseFloat(b.issue_amount) || 0) - getCollectedAmount(b.loan_id);
+				aVal = getLoanBalance(a);
+				bVal = getLoanBalance(b);
 			}
 			// Try numeric sort if possible
 			if (!isNaN(parseFloat(aVal)) && !isNaN(parseFloat(bVal))) {
@@ -293,10 +286,10 @@ const Loans = () => {
 	}, [loans, filter, sortKey, sortOrder, loanView]);
 
 	// Calculate totals for footer
-	const totalIssued = filteredLoans.reduce((sum, loan) => sum + (parseFloat(loan.issue_amount) || 0), 0);
-	const totalCollected = filteredLoans.reduce((sum, loan) => sum + getCollectedAmount(loan.loan_id), 0);
-	const totalBalance = totalIssued - totalCollected;
-	const totalAdjustments = filteredLoans.reduce((sum, loan) => sum + (parseFloat(loan.adjustments) || 0), 0);
+	const totalIssued = filteredLoans.reduce((sum, loan) => sum + toAmount(loan.issue_amount), 0);
+	const totalCollected = filteredLoans.reduce((sum, loan) => sum + getLoanCollectedAmount(loan), 0);
+	const totalBalance = filteredLoans.reduce((sum, loan) => sum + getLoanBalance(loan), 0);
+	const totalAdjustments = filteredLoans.reduce((sum, loan) => sum + toAmount(loan.adjustments), 0);
 	const customerOptions = customers.map(customer => ({
 		value: customer.customer_id,
 		label: `${customer.customer_id} - ${customer.customer_name}`,
@@ -389,7 +382,7 @@ const Loans = () => {
 				<CloseLoanForm
 					loan={{
 						...selectedLoan,
-						collected_amount: getCollectedAmount(selectedLoan?.loan_id),
+						collected_amount: getLoanCollectedAmount(selectedLoan),
 					}}
 					onClose={() => setShowCloseLoanModal(false)}
 					onSuccess={() => {
@@ -542,11 +535,10 @@ const Loans = () => {
 									{columns.map(col => {
 										let value = loan[col.key];
 										if (col.key === 'collected_amount') {
-											value = formatAmount(getCollectedAmount(loan.loan_id));
+											value = formatAmount(getLoanCollectedAmount(loan));
 										} else if (col.key === 'balance') {
-											const issued = parseFloat(loan.issue_amount) || 0;
-											const collected = getCollectedAmount(loan.loan_id);
-											value = formatAmount(issued - collected);
+											const balance = getLoanBalance(loan);
+											value = formatAmount(balance);
 										} else if (col.key === 'loan_type') {
 											value = formatLoanType(value);
 										} else if (col.key.toLowerCase().includes('date') && value) {
@@ -606,9 +598,9 @@ const Loans = () => {
 				) : filteredLoans.length === 0 ? (
 					<div className="mobile-record-card">No loans found.</div>
 				) : filteredLoans.map((loan, idx) => {
-					const collected = getCollectedAmount(loan.loan_id);
-					const issued = parseFloat(loan.issue_amount) || 0;
-					const balance = issued - collected;
+					const collected = getLoanCollectedAmount(loan);
+					const issued = toAmount(loan.issue_amount);
+					const balance = getLoanBalance(loan);
 					const open = isOpenLoan(loan);
 
 					return (

@@ -4,7 +4,7 @@ import { canAccessSection, getCurrentEmployee } from '../permissions';
 
 const mainItems = ['Dashboard', 'Collections', 'Loans', 'Customers', 'Employees', 'Transactions', 'Reports', 'Settings'];
 const transactionItems = ['Receipts', 'Payments'];
-const reportItems = ['Loan Report', 'Monthly Status', 'Interest Received', 'Customer Analysis', 'Collection Details', 'Customer Status'];
+const reportItems = ['Loan Report', 'Monthly Status', 'Interest Received', 'Customer Analysis', 'Collection Details', 'Customer Status', 'Defaulters'];
 
 const MenuPanel = ({ selected, setSelected, onLogout }) => {
   const [reportsOpen, setReportsOpen] = useState(false);

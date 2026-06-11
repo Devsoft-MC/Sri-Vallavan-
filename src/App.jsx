@@ -12,6 +12,7 @@ import ActiveLoanPositionReport from './components/Reports/ActiveLoanPositionRep
 import CustomerAnalysisReport from './components/Reports/CustomerAnalysisReport';
 import CollectionDetailsReport from './components/Reports/CollectionDetailsReport';
 import CustomerStatusReport from './components/Reports/CustomerStatusReport';
+import DefaultersReport from './components/Reports/DefaultersReport';
 import InterestReceivedReport from './components/Reports/InterestReceivedReport';
 import MonthlyStatusReport from './components/Reports/MonthlyStatusReport';
 import Login from './components/Login';
@@ -84,6 +85,7 @@ const App = () => {
         {canAccessSelected && selected === 'Customer Analysis' && <CustomerAnalysisReport />}
         {canAccessSelected && selected === 'Collection Details' && <CollectionDetailsReport />}
         {canAccessSelected && selected === 'Customer Status' && <CustomerStatusReport />}
+        {canAccessSelected && selected === 'Defaulters' && <DefaultersReport />}
       </main>
     </div>
   );
