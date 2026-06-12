@@ -13,19 +13,18 @@ function normalizeLoanId(value) {
 
 export function getLoanCollectedAmount(loan, collectionsByLoan) {
   if (!loan) return 0;
-  if (isDefined(loan.collected_amount)) {
-    return toAmount(loan.collected_amount);
-  }
-
   const loanId = normalizeLoanId(loan.loan_id);
-  if (!loanId || !collectionsByLoan) return 0;
 
-  if (collectionsByLoan instanceof Map) {
+  if (loanId && collectionsByLoan instanceof Map && collectionsByLoan.has(loanId)) {
     return toAmount(collectionsByLoan.get(loanId) || 0);
   }
 
-  if (typeof collectionsByLoan === 'object') {
+  if (loanId && collectionsByLoan && typeof collectionsByLoan === 'object' && Object.prototype.hasOwnProperty.call(collectionsByLoan, loanId)) {
     return toAmount(collectionsByLoan[loanId] || 0);
+  }
+
+  if (isDefined(loan.collected_amount)) {
+    return toAmount(loan.collected_amount);
   }
 
   return 0;
@@ -33,7 +32,7 @@ export function getLoanCollectedAmount(loan, collectionsByLoan) {
 
 export function getLoanBalance(loan, collectionsByLoan) {
   if (!loan) return 0;
-  if (isDefined(loan.balance_amount)) {
+  if (!collectionsByLoan && isDefined(loan.balance_amount)) {
     return toAmount(loan.balance_amount);
   }
   return toAmount(loan.issue_amount) - getLoanCollectedAmount(loan, collectionsByLoan);

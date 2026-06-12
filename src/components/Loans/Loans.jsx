@@ -247,6 +247,16 @@ const Loans = () => {
 		}
 	};
 
+	const collectionsByLoan = useMemo(() => {
+		const totals = new Map();
+		collections.forEach(collection => {
+			const loanId = String(collection.loan_id || '').trim();
+			if (!loanId) return;
+			totals.set(loanId, (totals.get(loanId) || 0) + toAmount(collection.collection_amount));
+		});
+		return totals;
+	}, [collections]);
+
 	const filteredLoans = useMemo(() => {
 		let filtered = loans.filter(loan =>
 			Object.values(loan).some(val =>
@@ -264,11 +274,11 @@ const Loans = () => {
 			let bVal = b[sortKey];
 			// Special handling for collected_amount and balance
 			if (sortKey === 'collected_amount') {
-				aVal = getLoanCollectedAmount(a);
-				bVal = getLoanCollectedAmount(b);
+				aVal = getLoanCollectedAmount(a, collectionsByLoan);
+				bVal = getLoanCollectedAmount(b, collectionsByLoan);
 			} else if (sortKey === 'balance') {
-				aVal = getLoanBalance(a);
-				bVal = getLoanBalance(b);
+				aVal = getLoanBalance(a, collectionsByLoan);
+				bVal = getLoanBalance(b, collectionsByLoan);
 			}
 			// Try numeric sort if possible
 			if (!isNaN(parseFloat(aVal)) && !isNaN(parseFloat(bVal))) {
@@ -283,12 +293,12 @@ const Loans = () => {
 			return 0;
 		});
 		return sorted;
-	}, [loans, filter, sortKey, sortOrder, loanView]);
+	}, [loans, filter, sortKey, sortOrder, loanView, collectionsByLoan]);
 
 	// Calculate totals for footer
 	const totalIssued = filteredLoans.reduce((sum, loan) => sum + toAmount(loan.issue_amount), 0);
-	const totalCollected = filteredLoans.reduce((sum, loan) => sum + getLoanCollectedAmount(loan), 0);
-	const totalBalance = filteredLoans.reduce((sum, loan) => sum + getLoanBalance(loan), 0);
+	const totalCollected = filteredLoans.reduce((sum, loan) => sum + getLoanCollectedAmount(loan, collectionsByLoan), 0);
+	const totalBalance = filteredLoans.reduce((sum, loan) => sum + getLoanBalance(loan, collectionsByLoan), 0);
 	const totalAdjustments = filteredLoans.reduce((sum, loan) => sum + toAmount(loan.adjustments), 0);
 	const customerOptions = customers.map(customer => ({
 		value: customer.customer_id,
@@ -382,7 +392,7 @@ const Loans = () => {
 				<CloseLoanForm
 					loan={{
 						...selectedLoan,
-						collected_amount: getLoanCollectedAmount(selectedLoan),
+						collected_amount: getLoanCollectedAmount(selectedLoan, collectionsByLoan),
 					}}
 					onClose={() => setShowCloseLoanModal(false)}
 					onSuccess={() => {
@@ -535,9 +545,9 @@ const Loans = () => {
 									{columns.map(col => {
 										let value = loan[col.key];
 										if (col.key === 'collected_amount') {
-											value = formatAmount(getLoanCollectedAmount(loan));
+											value = formatAmount(getLoanCollectedAmount(loan, collectionsByLoan));
 										} else if (col.key === 'balance') {
-											const balance = getLoanBalance(loan);
+											const balance = getLoanBalance(loan, collectionsByLoan);
 											value = formatAmount(balance);
 										} else if (col.key === 'loan_type') {
 											value = formatLoanType(value);
@@ -598,9 +608,9 @@ const Loans = () => {
 				) : filteredLoans.length === 0 ? (
 					<div className="mobile-record-card">No loans found.</div>
 				) : filteredLoans.map((loan, idx) => {
-					const collected = getLoanCollectedAmount(loan);
+					const collected = getLoanCollectedAmount(loan, collectionsByLoan);
 					const issued = toAmount(loan.issue_amount);
-					const balance = getLoanBalance(loan);
+					const balance = getLoanBalance(loan, collectionsByLoan);
 					const open = isOpenLoan(loan);
 
 					return (
