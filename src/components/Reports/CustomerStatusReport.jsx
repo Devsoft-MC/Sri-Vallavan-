@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import API_BASE_URL from '../../api';
+import useIsMobile from '../../hooks/useIsMobile';
 
 const today = new Date().toISOString().slice(0, 10);
+const MOBILE_REPORT_LIMIT = 300;
+const MOBILE_COLLECTION_LIMIT = 500;
 
 const statusOptions = ['All', 'Good', 'Monitor', 'Need Review'];
 
@@ -95,6 +98,7 @@ function formatCell(row, column) {
 }
 
 const CustomerStatusReport = () => {
+  const isMobile = useIsMobile();
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
   const [collections, setCollections] = useState([]);
@@ -111,10 +115,19 @@ const CustomerStatusReport = () => {
       setError('');
 
       try {
+        const customerParams = new URLSearchParams();
+        const loanParams = new URLSearchParams();
+        const collectionParams = new URLSearchParams({ text: '%' });
+        if (isMobile) {
+          customerParams.set('limit', String(MOBILE_REPORT_LIMIT));
+          loanParams.set('limit', String(MOBILE_REPORT_LIMIT));
+          collectionParams.set('limit', String(MOBILE_COLLECTION_LIMIT));
+        }
+
         const [customersRes, loansRes, collectionsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/customers`),
-          fetch(`${API_BASE_URL}/api/loans`),
-          fetch(`${API_BASE_URL}/api/collections?text=%25`),
+          fetch(`${API_BASE_URL}/api/customers${customerParams.toString() ? `?${customerParams}` : ''}`),
+          fetch(`${API_BASE_URL}/api/loans${loanParams.toString() ? `?${loanParams}` : ''}`),
+          fetch(`${API_BASE_URL}/api/collections?${collectionParams}`),
         ]);
 
         if (!customersRes.ok || !loansRes.ok || !collectionsRes.ok) {
@@ -148,7 +161,7 @@ const CustomerStatusReport = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isMobile]);
 
   const reportRows = useMemo(() => {
     const customerMap = new Map(customers.map(customer => [customer.customer_id, customer]));

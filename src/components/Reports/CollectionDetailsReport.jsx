@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Select from 'react-select';
 import API_BASE_URL from '../../api';
+import useIsMobile from '../../hooks/useIsMobile';
 import { getLoanCollectedAmount, getLoanBalance } from '../../utils/loanUtils';
+
+const MOBILE_LOOKUP_LIMIT = 100;
+const MOBILE_REPORT_LIMIT = 300;
+const MOBILE_COLLECTION_LIMIT = 500;
 
 const loanColumns = [
   { key: 'loan_id', label: 'Loan No' },
@@ -81,6 +86,7 @@ function formatCell(row, column) {
 }
 
 const CollectionDetailsReport = () => {
+  const isMobile = useIsMobile();
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
   const [collections, setCollections] = useState([]);
@@ -97,10 +103,19 @@ const CollectionDetailsReport = () => {
       setError('');
 
       try {
+        const customerParams = new URLSearchParams();
+        const loanParams = new URLSearchParams();
+        const collectionParams = new URLSearchParams({ text: '%' });
+        if (isMobile) {
+          customerParams.set('limit', String(MOBILE_LOOKUP_LIMIT));
+          loanParams.set('limit', String(MOBILE_REPORT_LIMIT));
+          collectionParams.set('limit', String(MOBILE_COLLECTION_LIMIT));
+        }
+
         const [customersRes, loansRes, collectionsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/customers`),
-          fetch(`${API_BASE_URL}/api/loans`),
-          fetch(`${API_BASE_URL}/api/collections?text=%25`),
+          fetch(`${API_BASE_URL}/api/customers${customerParams.toString() ? `?${customerParams}` : ''}`),
+          fetch(`${API_BASE_URL}/api/loans${loanParams.toString() ? `?${loanParams}` : ''}`),
+          fetch(`${API_BASE_URL}/api/collections?${collectionParams}`),
         ]);
 
         if (!customersRes.ok || !loansRes.ok || !collectionsRes.ok) {
@@ -134,7 +149,7 @@ const CollectionDetailsReport = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isMobile]);
 
   const customerOptions = useMemo(
     () => [...customers]

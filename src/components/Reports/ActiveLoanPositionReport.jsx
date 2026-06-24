@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import API_BASE_URL from '../../api';
+import useIsMobile from '../../hooks/useIsMobile';
 import { getLoanBalance } from '../../utils/loanUtils';
 
 const today = new Date().toISOString().slice(0, 10);
+const MOBILE_REPORT_LIMIT = 300;
+const MOBILE_COLLECTION_LIMIT = 500;
 
 const columns = [
   { key: 'loan_id', label: 'Loan No' },
@@ -76,6 +79,7 @@ function isLoanActiveAsOn(loan, asOnDate) {
 }
 
 const ActiveLoanPositionReport = () => {
+  const isMobile = useIsMobile();
   const [asOnDate, setAsOnDate] = useState(today);
   const [loans, setLoans] = useState([]);
   const [collections, setCollections] = useState([]);
@@ -95,10 +99,19 @@ const ActiveLoanPositionReport = () => {
       setError('');
 
       try {
+        const loanParams = new URLSearchParams();
+        const customerParams = new URLSearchParams();
+        const collectionParams = new URLSearchParams({ to: asOnDate });
+        if (isMobile) {
+          loanParams.set('limit', String(MOBILE_REPORT_LIMIT));
+          customerParams.set('limit', String(MOBILE_REPORT_LIMIT));
+          collectionParams.set('limit', String(MOBILE_COLLECTION_LIMIT));
+        }
+
         const [loansRes, collectionsRes, customersRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/loans`),
-          fetch(`${API_BASE_URL}/api/collections?to=${encodeURIComponent(asOnDate)}`),
-          fetch(`${API_BASE_URL}/api/customers`),
+          fetch(`${API_BASE_URL}/api/loans${loanParams.toString() ? `?${loanParams}` : ''}`),
+          fetch(`${API_BASE_URL}/api/collections?${collectionParams}`),
+          fetch(`${API_BASE_URL}/api/customers${customerParams.toString() ? `?${customerParams}` : ''}`),
         ]);
 
         if (!loansRes.ok || !collectionsRes.ok || !customersRes.ok) {
@@ -132,7 +145,7 @@ const ActiveLoanPositionReport = () => {
     return () => {
       cancelled = true;
     };
-  }, [asOnDate]);
+  }, [asOnDate, isMobile]);
 
   const reportRows = useMemo(() => {
     const customerMap = new Map(customers.map(customer => [customer.customer_id, customer]));

@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import API_BASE_URL from '../../api';
+import useIsMobile from '../../hooks/useIsMobile';
 
 const today = new Date().toISOString().slice(0, 10);
 const firstDayOfYear = `${today.slice(0, 4)}-01-01`;
+const MOBILE_REPORT_LIMIT = 300;
 
 function normalizeDate(value) {
   return value ? String(value).slice(0, 10) : '';
@@ -37,6 +39,7 @@ function formatMonth(value) {
 }
 
 const InterestReceivedReport = () => {
+  const isMobile = useIsMobile();
   const [entries, setEntries] = useState([]);
   const [loans, setLoans] = useState([]);
   const [fromDate, setFromDate] = useState(firstDayOfYear);
@@ -55,9 +58,17 @@ const InterestReceivedReport = () => {
       setError('');
 
       try {
+        const entryParams = new URLSearchParams();
+        if (fromDate) entryParams.set('from', fromDate);
+        if (toDate) entryParams.set('to', toDate);
+        if (isMobile) entryParams.set('limit', String(MOBILE_REPORT_LIMIT));
+
+        const loanParams = new URLSearchParams();
+        if (isMobile) loanParams.set('limit', String(MOBILE_REPORT_LIMIT));
+
         const [entriesRes, loansRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/loan-income?text=%25`),
-          fetch(`${API_BASE_URL}/api/loans`),
+          fetch(`${API_BASE_URL}/api/loan-income${entryParams.toString() ? `?${entryParams}` : ''}`),
+          fetch(`${API_BASE_URL}/api/loans${loanParams.toString() ? `?${loanParams}` : ''}`),
         ]);
 
         if (!entriesRes.ok || !loansRes.ok) {
@@ -88,7 +99,7 @@ const InterestReceivedReport = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fromDate, isMobile, toDate]);
 
   const loanMap = useMemo(
     () => new Map(loans.map(loan => [loan.loan_id, loan])),

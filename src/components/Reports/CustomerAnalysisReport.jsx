@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Select from 'react-select';
 import API_BASE_URL from '../../api';
+import useIsMobile from '../../hooks/useIsMobile';
 import { getLoanCollectedAmount, getLoanBalance } from '../../utils/loanUtils';
 
 const today = new Date().toISOString().slice(0, 10);
+const MOBILE_LOOKUP_LIMIT = 100;
+const MOBILE_REPORT_LIMIT = 300;
+const MOBILE_COLLECTION_LIMIT = 500;
 
 const summaryColumns = [
   { key: 'customer_id', label: 'Customer ID' },
@@ -166,6 +170,7 @@ function getReportFileName(extension, customerId) {
 }
 
 const CustomerAnalysisReport = () => {
+  const isMobile = useIsMobile();
   const [loans, setLoans] = useState([]);
   const [collections, setCollections] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -181,10 +186,19 @@ const CustomerAnalysisReport = () => {
       setError('');
 
       try {
+        const loanParams = new URLSearchParams();
+        const customerParams = new URLSearchParams();
+        const collectionParams = new URLSearchParams({ text: '%' });
+        if (isMobile) {
+          loanParams.set('limit', String(MOBILE_REPORT_LIMIT));
+          customerParams.set('limit', String(MOBILE_LOOKUP_LIMIT));
+          collectionParams.set('limit', String(MOBILE_COLLECTION_LIMIT));
+        }
+
         const [loansRes, collectionsRes, customersRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/loans`),
-          fetch(`${API_BASE_URL}/api/collections?text=%25`),
-          fetch(`${API_BASE_URL}/api/customers`),
+          fetch(`${API_BASE_URL}/api/loans${loanParams.toString() ? `?${loanParams}` : ''}`),
+          fetch(`${API_BASE_URL}/api/collections?${collectionParams}`),
+          fetch(`${API_BASE_URL}/api/customers${customerParams.toString() ? `?${customerParams}` : ''}`),
         ]);
 
         if (!loansRes.ok || !collectionsRes.ok || !customersRes.ok) {
@@ -218,7 +232,7 @@ const CustomerAnalysisReport = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isMobile]);
 
   const customerOptions = useMemo(
     () => [...customers]

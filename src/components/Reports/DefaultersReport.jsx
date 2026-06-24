@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import API_BASE_URL from '../../api';
+import useIsMobile from '../../hooks/useIsMobile';
 import { getLoanBalance } from '../../utils/loanUtils';
+
+const MOBILE_REPORT_LIMIT = 300;
+const MOBILE_COLLECTION_LIMIT = 500;
 
 function pad(value) {
   return String(value).padStart(2, '0');
@@ -43,6 +47,7 @@ function isPersonalLoan(loan) {
 const presetDays = [7, 15, 30, 60, 90];
 
 const DefaultersReport = () => {
+  const isMobile = useIsMobile();
   const [daysBack, setDaysBack] = useState(7);
   const [customDays, setCustomDays] = useState('');
   const [customers, setCustomers] = useState([]);
@@ -80,11 +85,22 @@ const DefaultersReport = () => {
       setError('');
 
       try {
+        const customerParams = new URLSearchParams();
+        const loanParams = new URLSearchParams();
+        const windowCollectionParams = new URLSearchParams({ from: windowStart, to: windowEnd });
+        const allCollectionParams = new URLSearchParams({ text: '%' });
+        if (isMobile) {
+          customerParams.set('limit', String(MOBILE_REPORT_LIMIT));
+          loanParams.set('limit', String(MOBILE_REPORT_LIMIT));
+          windowCollectionParams.set('limit', String(MOBILE_COLLECTION_LIMIT));
+          allCollectionParams.set('limit', String(MOBILE_COLLECTION_LIMIT));
+        }
+
         const [customersRes, loansRes, windowCollectionsRes, allCollectionsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/customers`),
-          fetch(`${API_BASE_URL}/api/loans`),
-          fetch(`${API_BASE_URL}/api/collections?from=${windowStart}&to=${windowEnd}`),
-          fetch(`${API_BASE_URL}/api/collections?text=%25`),
+          fetch(`${API_BASE_URL}/api/customers${customerParams.toString() ? `?${customerParams}` : ''}`),
+          fetch(`${API_BASE_URL}/api/loans${loanParams.toString() ? `?${loanParams}` : ''}`),
+          fetch(`${API_BASE_URL}/api/collections?${windowCollectionParams}`),
+          fetch(`${API_BASE_URL}/api/collections?${allCollectionParams}`),
         ]);
 
         if (!customersRes.ok || !loansRes.ok || !windowCollectionsRes.ok || !allCollectionsRes.ok) {
@@ -120,7 +136,7 @@ const DefaultersReport = () => {
     return () => {
       cancelled = true;
     };
-  }, [windowStart, windowEnd]);
+  }, [isMobile, windowStart, windowEnd]);
 
   const windowCollectionsByLoan = useMemo(() => {
     const map = new Map();
