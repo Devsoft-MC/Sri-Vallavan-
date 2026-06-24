@@ -8,6 +8,12 @@ const normalizeText = (value) => {
   return text || null;
 };
 
+const normalizeLimit = (value, fallback = null, max = 500) => {
+  const limit = Number.parseInt(value, 10);
+  if (!Number.isFinite(limit) || limit <= 0) return fallback;
+  return Math.min(limit, max);
+};
+
 const verifyIncomeType = async (client, incomeTypeId) => {
   const result = await client.query(
     `SELECT income_type_id, income_type_name, COALESCE(requires_loan, false) AS requires_loan, COALESCE(affects_profit, false) AS affects_profit
@@ -114,6 +120,7 @@ export function loanIncomeEndpoint(
   app.get('/api/loan-income', async (req, res) => {
     try {
       const { loan_id, customer_id, income_type_id, from, to, text } = req.query;
+      const limit = normalizeLimit(req.query.limit);
       const where = [];
       const params = [];
       let idx = 1;
@@ -152,6 +159,7 @@ export function loanIncomeEndpoint(
       }
 
       const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+      const limitClause = limit ? `LIMIT ${limit}` : '';
       const result = await pool.query(
         `SELECT
            li.loan_income_id,
@@ -172,7 +180,8 @@ export function loanIncomeEndpoint(
          LEFT JOIN loans l ON l.loan_id = li.loan_id
          LEFT JOIN customers c ON c.customer_id = li.customer_id
          ${whereClause}
-         ORDER BY li.income_date DESC, li.loan_income_id DESC`,
+         ORDER BY li.income_date DESC, li.loan_income_id DESC
+         ${limitClause}`,
         params
       );
       res.json(result.rows);

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pie } from 'react-chartjs-2';
 import '../Dashboard/chartjs-setup';
 import API_BASE_URL from '../../api';
+import useIsMobile from '../../hooks/useIsMobile';
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -180,13 +181,16 @@ function buildCustomerStatusCounts(customers, loans, collections) {
 }
 
 const CustomerCategoryPieChart = () => {
+  const isMobile = useIsMobile();
   const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
+    const mobileQuery = isMobile ? '?limit=100' : '';
+    const mobileCollectionsQuery = isMobile ? '?text=%25&limit=300' : '?text=%25';
     Promise.all([
-      fetch(`${API_BASE_URL}/api/customers`),
-      fetch(`${API_BASE_URL}/api/loans`),
-      fetch(`${API_BASE_URL}/api/collections?text=%25`),
+      fetch(`${API_BASE_URL}/api/customers${mobileQuery}`),
+      fetch(`${API_BASE_URL}/api/loans${mobileQuery}`),
+      fetch(`${API_BASE_URL}/api/collections${mobileCollectionsQuery}`),
     ])
       .then(responses => Promise.all(responses.map(res => (
         res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))
@@ -224,7 +228,7 @@ const CustomerCategoryPieChart = () => {
         });
       })
       .catch(() => setChartData(null));
-  }, []);
+  }, [isMobile]);
 
   if (!chartData) return null;
 

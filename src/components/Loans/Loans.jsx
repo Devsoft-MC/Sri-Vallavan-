@@ -1,8 +1,9 @@
 
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Select from 'react-select';
 import API_BASE_URL from '../../api';
+import useIsMobile from '../../hooks/useIsMobile';
 import { getLoanCollectedAmount, getLoanBalance } from '../../utils/loanUtils';
 import CloseLoanForm from './CloseLoanForm';
 
@@ -92,6 +93,7 @@ function isOpenLoan(loan) {
 }
 
 const Loans = () => {
+	const isMobile = useIsMobile();
 	const [loanView, setLoanView] = useState('all'); // 'all', 'open', 'closed'
 
 	const toggleLoanView = () => {
@@ -124,9 +126,14 @@ const Loans = () => {
 	const [showCloseLoanModal, setShowCloseLoanModal] = useState(false);
 	const [selectedLoan, setSelectedLoan] = useState(null);
 
-	const loadLoans = () => {
+	const loadLoans = useCallback(() => {
 		setLoading(true);
-		fetch(`${API_BASE_URL}/api/loans`)
+		const params = new URLSearchParams();
+		if (isMobile) {
+			params.set('limit', '100');
+			if (filter.trim()) params.set('text', filter.trim());
+		}
+		fetch(`${API_BASE_URL}/api/loans${params.toString() ? `?${params}` : ''}`)
 			.then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
 			.then(data => {
 				setLoans(Array.isArray(data) ? data : []);
@@ -141,11 +148,13 @@ const Loans = () => {
 				setLoans([]);
 				setLoading(false);
 			});
-	};
+	}, [filter, isMobile]);
 
-	const loadCollections = () => {
+	const loadCollections = useCallback(() => {
 		setCollectionsLoading(true);
-		fetch(`${API_BASE_URL}/api/collections?text=%25`)
+		const params = new URLSearchParams({ text: '%' });
+		if (isMobile) params.set('limit', '300');
+		fetch(`${API_BASE_URL}/api/collections?${params}`)
 			.then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
 			.then(data => {
 				setCollections(Array.isArray(data) ? data : []);
@@ -155,12 +164,15 @@ const Loans = () => {
 				setCollections([]);
 				setCollectionsLoading(false);
 		});
-	};
+	}, [isMobile]);
 
 	useEffect(() => {
 		loadLoans();
+	}, [loadLoans]);
+
+	useEffect(() => {
 		loadCollections();
-	}, []);
+	}, [loadCollections]);
 
 	useEffect(() => {
 		if (!showNewLoanModal) return;

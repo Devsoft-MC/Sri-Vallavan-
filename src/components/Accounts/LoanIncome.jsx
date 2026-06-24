@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Select from 'react-select';
 import API_BASE_URL from '../../api';
+import useIsMobile from '../../hooks/useIsMobile';
 
 const today = new Date().toISOString().slice(0, 10);
+const MOBILE_RECEIPT_LIMIT = 50;
+const MOBILE_LOOKUP_LIMIT = 100;
 
 function formatAmount(value) {
   const amount = Number(value);
@@ -28,6 +31,7 @@ const initialForm = {
 };
 
 const LoanIncome = () => {
+  const isMobile = useIsMobile();
   const [customers, setCustomers] = useState([]);
   const [loans, setLoans] = useState([]);
   const [incomeTypes, setIncomeTypes] = useState([]);
@@ -41,6 +45,8 @@ const LoanIncome = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [filterText, setFilterText] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   const customerOptions = useMemo(
     () => customers.map(customer => ({
@@ -96,10 +102,16 @@ const LoanIncome = () => {
       const params = new URLSearchParams();
       if (selectedLoanId) params.set('loan_id', selectedLoanId);
       else if (selectedCustomerId) params.set('customer_id', selectedCustomerId);
+      if (isMobile) {
+        params.set('limit', String(MOBILE_RECEIPT_LIMIT));
+        if (fromDate) params.set('from', fromDate);
+        if (toDate) params.set('to', toDate);
+        if (filterText.trim()) params.set('text', filterText.trim());
+      }
 
       const [customersRes, loansRes, incomeTypesRes, entriesRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/customers`),
-        fetch(`${API_BASE_URL}/api/loans`),
+        fetch(`${API_BASE_URL}/api/customers${isMobile ? `?limit=${MOBILE_LOOKUP_LIMIT}` : ''}`),
+        fetch(`${API_BASE_URL}/api/loans${isMobile ? `?limit=${MOBILE_LOOKUP_LIMIT}` : ''}`),
         fetch(`${API_BASE_URL}/api/income-types`),
         fetch(`${API_BASE_URL}/api/loan-income${params.toString() ? `?${params}` : ''}`),
       ]);
@@ -124,7 +136,7 @@ const LoanIncome = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedCustomerId, selectedLoanId]);
+  }, [filterText, fromDate, isMobile, selectedCustomerId, selectedLoanId, toDate]);
 
   useEffect(() => {
     loadData();
@@ -237,7 +249,7 @@ const LoanIncome = () => {
     <div style={{ padding: 24 }}>
       <h2 style={{ color: 'navy', margin: '0 0 18px' }}>Receipts</h2>
 
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, alignItems: 'end', marginBottom: 16 }}>
+      <form className="mobile-data-form" onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, alignItems: 'end', marginBottom: 16 }}>
         <label style={{ fontSize: 13, color: '#444' }}>
           Customer
           <Select
@@ -315,6 +327,12 @@ const LoanIncome = () => {
       <div className="mobile-toolbar" style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
         <span style={{ fontSize: 14, color: '#555' }}>{filteredEntries.length} entries</span>
         <span style={{ fontSize: 14, color: '#1f2937', fontWeight: 700 }}>Total {formatAmount(totalIncome)}</span>
+        {isMobile && (
+          <>
+            <input type="date" value={fromDate} onChange={event => setFromDate(event.target.value)} aria-label="Receipt from date" style={{ padding: 7, minWidth: 150, fontSize: 13 }} />
+            <input type="date" value={toDate} onChange={event => setToDate(event.target.value)} aria-label="Receipt to date" style={{ padding: 7, minWidth: 150, fontSize: 13 }} />
+          </>
+        )}
         <input value={filterText} onChange={event => setFilterText(event.target.value)} placeholder="Filter by any field" style={{ padding: 7, minWidth: 220, fontSize: 13 }} />
         <button type="button" onClick={loadData} style={{ padding: '7px 14px', fontSize: 13, background: '#fff', border: '1px solid #cfd6e2', borderRadius: 4, cursor: 'pointer' }}>Refresh</button>
       </div>

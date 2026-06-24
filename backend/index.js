@@ -85,6 +85,12 @@ const requirePermission = (permission) => async (req, res, next) => {
   }
 };
 
+const normalizeLimit = (value, fallback = null, max = 500) => {
+  const limit = Number.parseInt(value, 10);
+  if (!Number.isFinite(limit) || limit <= 0) return fallback;
+  return Math.min(limit, max);
+};
+
 const app = express();
 app.use(cors({
   origin: [
@@ -300,6 +306,7 @@ app.get('/api/test', async (req, res) => {
 app.get('/api/collections', async (req, res) => {
   try {
     const { from, to, text, collected_by, loan_id } = req.query;
+    const requestedLimit = normalizeLimit(req.query.limit);
     let where = [];
     let params = [];
     let idx = 1;
@@ -338,12 +345,14 @@ app.get('/api/collections', async (req, res) => {
     if (text === '%') {
       // Remove all filters and params for full export
       finalWhereClause = '';
-      limitClause = '';
+      limitClause = requestedLimit ? `LIMIT ${requestedLimit}` : '';
       params = [];
     } else {
       // If any filter is applied (including loan_id), return all matching records
       // If no filter, return only latest 100 records
-      limitClause = (from || to || text || collected_by || loan_id) ? '' : 'LIMIT 100';
+      limitClause = requestedLimit
+        ? `LIMIT ${requestedLimit}`
+        : ((from || to || text || collected_by || loan_id) ? '' : 'LIMIT 100');
     }
     const query = `
       SELECT collection_id, customer_id, customer_name, loan_id, collection_date, collection_amount, collection_type, collected_by_name
@@ -392,6 +401,8 @@ app.get('/api/customers/next-id', async (req, res) => {
 app.get('/api/customers', async (req, res) => {
   try {
     const { text } = req.query;
+    const limit = normalizeLimit(req.query.limit);
+    const limitClause = limit ? `LIMIT ${limit}` : '';
     let query, params = [];
     if (text && text.trim()) {
       query = `
@@ -406,6 +417,7 @@ app.get('/api/customers', async (req, res) => {
           c.customer_category ILIKE $1 OR
           a.area_name ILIKE $1
         ORDER BY c.customer_name
+        ${limitClause}
       `;
       params = [`%${text.trim()}%`];
     } else {
@@ -416,6 +428,7 @@ app.get('/api/customers', async (req, res) => {
         FROM customers c
         LEFT JOIN areas a ON c.area_id = a.area_id
         ORDER BY c.customer_name
+        ${limitClause}
       `;
     }
     const result = await pool.query(query, params);
